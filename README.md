@@ -4,46 +4,68 @@ Shared conventions for reproducible scientific data curation and geographical re
 
 ## Current status
 
-The toponym utility reports generator version `1.1.1` and combines Nominatim reverse geocoding with Overpass place-node matching and disk caching. The workbook contract is `2.0.0-draft.1` (2026-09-07), proposed for review and adoption; its ingestion and validation pipeline is not implemented in this repository. The toponymy contract has no declared semantic version.
+The toponym utility reports generator version `1.1.1` and combines Nominatim reverse geocoding with Overpass place-node matching and disk caching. The workbook contract is `2.0.0-draft.1` (2026-09-07), proposed for review and adoption. The new workbook compliance suite (`0.1.0`) preserves XLSX/ODS downloads, validates their datasheets, derives decimal-degree coordinates, compares successive snapshots, and publishes coherent validated builds. The toponymy contract has no declared semantic version.
 
-The [Key Fields and Identifiers Contract](contracts/Key%20Fields%20and%20Identifiers%20Contract.md) is a new `1.0.0-draft.1` specification for identifier assignment, text representation, uniqueness, lineage, and exchange. It preserves existing IDs during adoption; no allocator or contract validator is implemented here.
+The [Key Fields and Identifiers Contract](contracts/Key%20Fields%20and%20Identifiers%20Contract.md) is a `1.0.0-draft.1` specification for identifier assignment, text representation, uniqueness, lineage, and exchange. The suite validates declared profiles and available register/lineage evidence; it does not allocate or rewrite identifiers. The new [Geographical Coordinates Contract](contracts/Geographical%20Coordinates%20Contract.md) defines conversion, CRS, preservation, and precision requirements.
+
+See [Dataset Compliance](docs/Dataset%20Compliance.md) for the mutable-workbook workflow, source metadata, individual scripts, coverage limits, and runnable XLSX/ODS examples. Run a completed download with:
+
+```sh
+R_LIBS_USER="$PWD/local/R-library" Rscript src/run_compliance.R \
+  inputs/collection.xlsx local/compliance-state --source-id collection \
+  --config config/compliance.example.json
+```
+
+The workbook's `workbook_id` must match `--source-id`. Install `jsonlite`, `xml2`, and `digest` as described in the guide. Each downloaded revision is retained; failed checks leave the last validated publication unchanged. Network geocoding is optional.
 
 Use the immutable Git revisions below for pre-release adoption. No release tags are present in this checkout. A generator version or draft contract label alone does not identify exact file contents.
 
 ## Pinning source code and contracts
 
-The following full commit IDs identify the current committed source and contracts, verified on 2026-09-07. The source pin includes version `1.1.1`, its HTTP-error handling fixes, and offline regression tests:
+The following full commit IDs identify the current committed source and contracts, verified on 2026-09-07. The compliance suite pin includes its runtime, configuration, country-code reference, sample workbooks, and offline regression tests. Use the shared checkout below to obtain its contracts and usage guide as well. The standalone toponym utility remains at version `1.1.1`.
 
 | Component | Path | Commit to pin |
 | --- | --- | --- |
 | Toponym utility (`1.1.1`) | `src/osm_toponym.R` | `c420c2f5c803a526ddb40d2b824e3fb122026811` |
+| Workbook compliance suite (`0.1.0`) | `src/run_compliance.R`, `src/compliance/`, stage scripts and supporting files | `782018453240b6afd48e0c0c067b77e44015b486` |
 | Toponymy Reference Contract (unversioned) | `contracts/Toponymy Reference Contract.md` | `43c05938f6517e2805f8c8854bef8b37452d8df8` |
-| Workbook contract (`2.0.0-draft.1`) | `contracts/Workbook Datasets — Source-of-Truth Contract.md` | `b58095009bc9b2538fbcb8f29399b53eee46bec6` |
-| Key Fields and Identifiers Contract (`1.0.0-draft.1`) | `contracts/Key Fields and Identifiers Contract.md` | `1b92bbfaf2fdaee9a581a0b6add8cb47d82e1ff2` |
+| Workbook contract (`2.0.0-draft.1`) | `contracts/Workbook Datasets — Source-of-Truth Contract.md` | `d52cd484be376522dec74455fc87e9231290b81f` |
+| Key Fields and Identifiers Contract (`1.0.0-draft.1`) | `contracts/Key Fields and Identifiers Contract.md` | `d52cd484be376522dec74455fc87e9231290b81f` |
+| Geographical Coordinates Contract (`1.0.0-draft.1`) | `contracts/Geographical Coordinates Contract.md` | `d52cd484be376522dec74455fc87e9231290b81f` |
 
-These are **Git commit IDs**, not file checksums. Each component pin is its most recent modifying commit. For a single checkout containing all four components listed above, pin **`1b92bbfaf2fdaee9a581a0b6add8cb47d82e1ff2`**. It contains the new Key Fields and Identifiers Contract; the utility and other contracts are byte-for-byte identical to their respective component pins above.
+These are **Git commit IDs**, not file checksums. Each component pin is its most recent modifying commit. For a single checkout containing all six components listed above, pin **`d52cd484be376522dec74455fc87e9231290b81f`**. It includes the compliance suite, all four contracts, and the usage guide. Each listed component is byte-for-byte identical to its component pin above.
 
 Example YAML for a consuming repository's manifest (illustrative keys; adapt to its manifest schema):
 
 ```yaml
 data_protocols:
   repository: "<repository-clone-url>"
-  revision: "1b92bbfaf2fdaee9a581a0b6add8cb47d82e1ff2"
+  revision: "d52cd484be376522dec74455fc87e9231290b81f"
   source:
     path: "src/osm_toponym.R"
     revision: "c420c2f5c803a526ddb40d2b824e3fb122026811"
     generator_version: "1.1.1"
+  workbook_compliance:
+    entry_point: "src/run_compliance.R"
+    modules: "src/compliance/"
+    reference_data: "references/"
+    revision: "782018453240b6afd48e0c0c067b77e44015b486"
+    pipeline_version: "0.1.0"
   contracts:
     toponymy:
       path: "contracts/Toponymy Reference Contract.md"
       revision: "43c05938f6517e2805f8c8854bef8b37452d8df8"
     workbook_datasets:
       path: "contracts/Workbook Datasets — Source-of-Truth Contract.md"
-      revision: "b58095009bc9b2538fbcb8f29399b53eee46bec6"
+      revision: "d52cd484be376522dec74455fc87e9231290b81f"
       contract_version: "2.0.0-draft.1"
     key_fields:
       path: "contracts/Key Fields and Identifiers Contract.md"
-      revision: "1b92bbfaf2fdaee9a581a0b6add8cb47d82e1ff2"
+      revision: "d52cd484be376522dec74455fc87e9231290b81f"
+      contract_version: "1.0.0-draft.1"
+    geographical_coordinates:
+      path: "contracts/Geographical Coordinates Contract.md"
+      revision: "d52cd484be376522dec74455fc87e9231290b81f"
       contract_version: "1.0.0-draft.1"
 ```
 
@@ -52,9 +74,9 @@ Replace `<repository-clone-url>` with the actual accessible repository location.
 After cloning, select and verify the shared snapshot:
 
 ```sh
-git -C path/to/data-protocols checkout --detach 1b92bbfaf2fdaee9a581a0b6add8cb47d82e1ff2
+git -C path/to/data-protocols checkout --detach d52cd484be376522dec74455fc87e9231290b81f
 git -C path/to/data-protocols rev-parse HEAD
-git -C path/to/data-protocols diff --exit-code HEAD -- src/osm_toponym.R contracts/
+git -C path/to/data-protocols diff --exit-code HEAD -- src/ contracts/ references/ config/
 ```
 
 Use full hashes in manifests rather than a moving branch name or `HEAD`. These pins identify the source and contracts, not future README edits. Advance them only after the relevant changes are committed and reviewed. To obtain the latest modifying commits in a later checkout:
@@ -64,6 +86,8 @@ git log -1 --format=%H -- src/osm_toponym.R
 git log -1 --format=%H -- 'contracts/Toponymy Reference Contract.md'
 git log -1 --format=%H -- 'contracts/Workbook Datasets — Source-of-Truth Contract.md'
 git log -1 --format=%H -- 'contracts/Key Fields and Identifiers Contract.md'
+git log -1 --format=%H -- 'contracts/Geographical Coordinates Contract.md'
+git log -1 --format=%H -- src/ references/ config/compliance.example.json
 ```
 
 Record local configuration edits or patches separately from the upstream revision. Pinning this repository does not pin R dependencies or the changing OSM services; retain dependency versions, API caches, input/output digests, and run provenance when reproducibility requires them. The GeoJSON includes `generator_version`, but the script does not automatically embed these Git revisions.
@@ -75,6 +99,11 @@ Record local configuration edits or patches separately from the upstream revisio
 | [Toponymy Reference Contract](contracts/Toponymy%20Reference%20Contract.md) | OSM reference conventions for geographical identity, names, discrepancies, and provenance. |
 | [Workbook Datasets — Source-of-Truth Contract](contracts/Workbook%20Datasets%20%E2%80%94%20Source-of-Truth%20Contract.md) | Draft conventions for source workbooks, worksheet roles, raw/calculated fields, keys, metadata, and extraction. |
 | [Key Fields and Identifiers Contract](contracts/Key%20Fields%20and%20Identifiers%20Contract.md) | Draft rules for stable text IDs, country/year profiles, assignment scope, fixed widths, child/pool lineage, labels, provider mappings, and legacy compatibility. |
+| [Geographical Coordinates Contract](contracts/Geographical%20Coordinates%20Contract.md) | Draft coordinate representation, CRS, conversion, precision, and provenance requirements. |
+| [Dataset Compliance](docs/Dataset%20Compliance.md) | Workbook ingestion, validation, history, publication, and configuration guide. |
+| [src/run_compliance.R](src/run_compliance.R) | Full XLSX/ODS compliance runner; individual stage scripts share modules in `src/compliance/`. |
+| [Example XLSX](examples/compliance/collection.xlsx) / [Example ODS](examples/compliance/collection.ods) | Equivalent synthetic source workbooks containing metadata and datasheets. |
+| [config/compliance.example.json](config/compliance.example.json) | Execution settings and optional reference-evidence configuration. |
 | [src/osm_toponym.R](src/osm_toponym.R) | CSV-to-GeoJSON command-line utility using Nominatim and Overpass. |
 | [examples/example_toponym.json](examples/example_toponym.json) | Illustrative single Feature with placeholder reference data, not a verified lookup. |
 | [examples/input_data.normalized.csv](examples/input_data.normalized.csv) | One-site input with the required `id,latitude,longitude` columns. |
@@ -166,6 +195,6 @@ Run the offline regression checks from the repository root:
 R_LIBS_USER="$PWD/local/R-library" Rscript tests/test_osm_toponym.R
 ```
 
-The checks intercept HTTP requests and use temporary caches; they do not call public services. They cover Nominatim/Overpass access denials, preserving existing outputs, diagnostic formatting, retry classification, cache reuse, and incomplete-run exit status. There is no R package manifest, dependency lockfile, or workbook converter in this repository. The tracked example output predates version 1.1.0 and is not a current regression fixture. When changing the utility, validate with controlled responses before live requests and inspect unresolved, ambiguous, and fallback results. When changing contracts, keep their status/version explicit and update downstream pins after adoption.
+The toponym checks intercept HTTP requests and use temporary caches; they do not call public services. They cover Nominatim/Overpass access denials, preserving existing outputs, diagnostic formatting, retry classification, cache reuse, and incomplete-run exit status. Run the workbook suite separately with `R_LIBS_USER="$PWD/local/R-library" Rscript tests/test_compliance.R`; it generates XLSX/ODS fixtures and verifies validation and mutable-download publication behaviour. There is no R package manifest or dependency lockfile. The tracked toponym example output predates version 1.1.0 and is not a current regression fixture. When changing either suite, validate with controlled fixtures before live service requests. When changing contracts, keep their status/version explicit and update downstream pins after adoption.
 
 Keep source, contracts, and curated examples under version control. The `.gitignore` excludes OS metadata, R session state, editor/spreadsheet temporary files, local environment files, and the three working directories. CSV, JSON, GeoJSON, and workbook formats are not ignored globally.
