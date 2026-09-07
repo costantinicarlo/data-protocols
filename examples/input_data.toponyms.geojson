@@ -1,0 +1,32 @@
+{
+  "type": "FeatureCollection",
+  "attribution": "<c2><a9> OpenStreetMap contributors, ODbL 1.0",
+  "generated": "2026-09-07T12:28:13Z",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -16.399609,
+          13.621044
+        ]
+      },
+      "properties": {
+        "source_id": "S01G1",
+        "name": "Sirmang",
+        "reference_system": "OpenStreetMap",
+        "osm_type": "node",
+        "osm_id": 3329034143,
+        "osm_url": "https://www.openstreetmap.org/node/3329034143",
+        "verified": "2026-09-07",
+        "country_code": "sn",
+        "osm_category": "place",
+        "osm_place_type": "village",
+        "display_name": "Sirmang, Communauté rurale de Keur Samba Guèye, Arrondissement de Toubacouta, Département de Foundiougne, Région de Fatick, 24020, Sénégal",
+        "query_latitude": 13.63332,
+        "query_longitude": -16.3874
+      }
+    }
+  ]
+}

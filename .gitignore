@@ -1,0 +1,33 @@
+# macOS and Windows metadata
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# R session state and local IDE state
+.Rhistory
+.Rapp.history
+.RData
+.RDataTmp
+.Ruserdata
+.Rproj.user/
+Rplots.pdf
+
+# Editor and spreadsheet temporary files
+*.swp
+*.swo
+*~
+~$*
+.~lock.*#
+
+# Local environment settings; retain shareable templates
+.Renviron
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Working inputs and generated outputs (relative to workspace root)
+/local/
+/outputs/
+/inputs/
