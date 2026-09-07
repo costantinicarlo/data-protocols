@@ -19,17 +19,16 @@ The following full commit IDs identify the current committed source and contract
 | Toponym utility (`1.1.1`) | `src/osm_toponym.R` | `c420c2f5c803a526ddb40d2b824e3fb122026811` |
 | Toponymy Reference Contract (unversioned) | `contracts/Toponymy Reference Contract.md` | `43c05938f6517e2805f8c8854bef8b37452d8df8` |
 | Workbook contract (`2.0.0-draft.1`) | `contracts/Workbook Datasets — Source-of-Truth Contract.md` | `b58095009bc9b2538fbcb8f29399b53eee46bec6` |
+| Key Fields and Identifiers Contract (`1.0.0-draft.1`) | `contracts/Key Fields and Identifiers Contract.md` | `1b92bbfaf2fdaee9a581a0b6add8cb47d82e1ff2` |
 
-These are **Git commit IDs**, not file checksums. Each component pin is its most recent modifying commit. For a single checkout containing all three components listed above, pin **`43c05938f6517e2805f8c8854bef8b37452d8df8`**. It contains the revised Toponymy Reference Contract; the utility and workbook contract are byte-for-byte identical to their respective component pins above.
-
-The new `contracts/Key Fields and Identifiers Contract.md` draft is not yet committed and is not included in that snapshot or the manifest below. After committing it, record its full commit ID as a separate contract pin and select a newer shared snapshot if consumers need all contracts together.
+These are **Git commit IDs**, not file checksums. Each component pin is its most recent modifying commit. For a single checkout containing all four components listed above, pin **`1b92bbfaf2fdaee9a581a0b6add8cb47d82e1ff2`**. It contains the new Key Fields and Identifiers Contract; the utility and other contracts are byte-for-byte identical to their respective component pins above.
 
 Example YAML for a consuming repository's manifest (illustrative keys; adapt to its manifest schema):
 
 ```yaml
 data_protocols:
   repository: "<repository-clone-url>"
-  revision: "43c05938f6517e2805f8c8854bef8b37452d8df8"
+  revision: "1b92bbfaf2fdaee9a581a0b6add8cb47d82e1ff2"
   source:
     path: "src/osm_toponym.R"
     revision: "c420c2f5c803a526ddb40d2b824e3fb122026811"
@@ -42,6 +41,10 @@ data_protocols:
       path: "contracts/Workbook Datasets — Source-of-Truth Contract.md"
       revision: "b58095009bc9b2538fbcb8f29399b53eee46bec6"
       contract_version: "2.0.0-draft.1"
+    key_fields:
+      path: "contracts/Key Fields and Identifiers Contract.md"
+      revision: "1b92bbfaf2fdaee9a581a0b6add8cb47d82e1ff2"
+      contract_version: "1.0.0-draft.1"
 ```
 
 Replace `<repository-clone-url>` with the actual accessible repository location. This checkout currently has no configured Git remote, so no published URL or remote availability has been verified. Ensure the pinned commits are available from the repository used by consumers.
@@ -49,7 +52,7 @@ Replace `<repository-clone-url>` with the actual accessible repository location.
 After cloning, select and verify the shared snapshot:
 
 ```sh
-git -C path/to/data-protocols checkout --detach 43c05938f6517e2805f8c8854bef8b37452d8df8
+git -C path/to/data-protocols checkout --detach 1b92bbfaf2fdaee9a581a0b6add8cb47d82e1ff2
 git -C path/to/data-protocols rev-parse HEAD
 git -C path/to/data-protocols diff --exit-code HEAD -- src/osm_toponym.R contracts/
 ```
@@ -60,6 +63,7 @@ Use full hashes in manifests rather than a moving branch name or `HEAD`. These p
 git log -1 --format=%H -- src/osm_toponym.R
 git log -1 --format=%H -- 'contracts/Toponymy Reference Contract.md'
 git log -1 --format=%H -- 'contracts/Workbook Datasets — Source-of-Truth Contract.md'
+git log -1 --format=%H -- 'contracts/Key Fields and Identifiers Contract.md'
 ```
 
 Record local configuration edits or patches separately from the upstream revision. Pinning this repository does not pin R dependencies or the changing OSM services; retain dependency versions, API caches, input/output digests, and run provenance when reproducibility requires them. The GeoJSON includes `generator_version`, but the script does not automatically embed these Git revisions.
