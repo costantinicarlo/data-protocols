@@ -6,6 +6,8 @@ Shared conventions for reproducible scientific data curation and geographical re
 
 The toponym utility reports generator version `1.1.1` and combines Nominatim reverse geocoding with Overpass place-node matching and disk caching. The workbook contract is `2.0.0-draft.1` (2026-09-07), proposed for review and adoption; its ingestion and validation pipeline is not implemented in this repository. The toponymy contract has no declared semantic version.
 
+The [Key Fields and Identifiers Contract](contracts/Key%20Fields%20and%20Identifiers%20Contract.md) is a new `1.0.0-draft.1` specification for identifier assignment, text representation, uniqueness, lineage, and exchange. It preserves existing IDs during adoption; no allocator or contract validator is implemented here.
+
 Use the immutable Git revisions below for pre-release adoption. No release tags are present in this checkout. A generator version or draft contract label alone does not identify exact file contents.
 
 ## Pinning source code and contracts
@@ -19,6 +21,8 @@ The following full commit IDs identify the current committed source and contract
 | Workbook contract (`2.0.0-draft.1`) | `contracts/Workbook Datasets — Source-of-Truth Contract.md` | `b58095009bc9b2538fbcb8f29399b53eee46bec6` |
 
 These are **Git commit IDs**, not file checksums. Each component pin is its most recent modifying commit. For a single checkout containing all three components listed above, pin **`43c05938f6517e2805f8c8854bef8b37452d8df8`**. It contains the revised Toponymy Reference Contract; the utility and workbook contract are byte-for-byte identical to their respective component pins above.
+
+The new `contracts/Key Fields and Identifiers Contract.md` draft is not yet committed and is not included in that snapshot or the manifest below. After committing it, record its full commit ID as a separate contract pin and select a newer shared snapshot if consumers need all contracts together.
 
 Example YAML for a consuming repository's manifest (illustrative keys; adapt to its manifest schema):
 
@@ -66,6 +70,7 @@ Record local configuration edits or patches separately from the upstream revisio
 | --- | --- |
 | [Toponymy Reference Contract](contracts/Toponymy%20Reference%20Contract.md) | OSM reference conventions for geographical identity, names, discrepancies, and provenance. |
 | [Workbook Datasets — Source-of-Truth Contract](contracts/Workbook%20Datasets%20%E2%80%94%20Source-of-Truth%20Contract.md) | Draft conventions for source workbooks, worksheet roles, raw/calculated fields, keys, metadata, and extraction. |
+| [Key Fields and Identifiers Contract](contracts/Key%20Fields%20and%20Identifiers%20Contract.md) | Draft rules for stable text IDs, country/year profiles, assignment scope, fixed widths, child/pool lineage, labels, provider mappings, and legacy compatibility. |
 | [src/osm_toponym.R](src/osm_toponym.R) | CSV-to-GeoJSON command-line utility using Nominatim and Overpass. |
 | [examples/example_toponym.json](examples/example_toponym.json) | Illustrative single Feature with placeholder reference data, not a verified lookup. |
 | [examples/input_data.normalized.csv](examples/input_data.normalized.csv) | One-site input with the required `id,latitude,longitude` columns. |
