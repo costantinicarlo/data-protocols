@@ -31,3 +31,7 @@ Rplots.pdf
 /local/
 /outputs/
 /inputs/
+
+# Python fixture-generator bytecode
+__pycache__/
+*.py[cod]

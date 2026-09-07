@@ -1,0 +1,8 @@
+{
+  "max_cells": 1000000,
+  "missing_token": "\\N",
+  "required_assessments": ["identifier_profile"],
+  "enrich_toponyms": false,
+  "geocoding_delay": 15.1,
+  "references": {}
+}
