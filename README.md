@@ -4,32 +4,32 @@ Shared conventions for reproducible scientific data curation and geographical re
 
 ## Current status
 
-The working toponym utility reports generator version `1.1.1` and combines Nominatim reverse geocoding with Overpass place-node matching and disk caching. The workbook contract is `2.0.0-draft.1` (2026-09-07), proposed for review and adoption; its ingestion and validation pipeline is not implemented in this repository. The toponymy contract has no declared semantic version.
+The toponym utility reports generator version `1.1.1` and combines Nominatim reverse geocoding with Overpass place-node matching and disk caching. The workbook contract is `2.0.0-draft.1` (2026-09-07), proposed for review and adoption; its ingestion and validation pipeline is not implemented in this repository. The toponymy contract has no declared semantic version.
 
 Use the immutable Git revisions below for pre-release adoption. No release tags are present in this checkout. A generator version or draft contract label alone does not identify exact file contents.
 
 ## Pinning source code and contracts
 
-The following full commit IDs identify the last recorded committed source and contracts, verified on 2026-09-07. The working `1.1.1` HTTP-error handling patch is not included in these pins; commit and review it before recording a new source revision:
+The following full commit IDs identify the current committed source and contracts, verified on 2026-09-07. The source pin includes version `1.1.1`, its HTTP-error handling fixes, and offline regression tests:
 
 | Component | Path | Commit to pin |
 | --- | --- | --- |
-| Toponym utility (`1.1.0`) | `src/osm_toponym.R` | `fc2e0aadc196ed310ebe2dc96932216f9c952df8` |
+| Toponym utility (`1.1.1`) | `src/osm_toponym.R` | `c420c2f5c803a526ddb40d2b824e3fb122026811` |
 | Toponymy Reference Contract (unversioned) | `contracts/Toponymy Reference Contract.md` | `b58095009bc9b2538fbcb8f29399b53eee46bec6` |
 | Workbook contract (`2.0.0-draft.1`) | `contracts/Workbook Datasets — Source-of-Truth Contract.md` | `b58095009bc9b2538fbcb8f29399b53eee46bec6` |
 
-These are **Git commit IDs**, not file checksums. Each component pin is its most recent modifying commit. For a single checkout containing all three components listed above, pin **`fc2e0aadc196ed310ebe2dc96932216f9c952df8`**: both contracts at that revision are byte-for-byte identical to their versions at `b58095009bc9b2538fbcb8f29399b53eee46bec6`.
+These are **Git commit IDs**, not file checksums. Each component pin is its most recent modifying commit. For a single checkout containing all three components listed above, pin **`c420c2f5c803a526ddb40d2b824e3fb122026811`**: both contracts at that revision are byte-for-byte identical to their versions at `b58095009bc9b2538fbcb8f29399b53eee46bec6`.
 
 Example YAML for a consuming repository's manifest (illustrative keys; adapt to its manifest schema):
 
 ```yaml
 data_protocols:
   repository: "<repository-clone-url>"
-  revision: "fc2e0aadc196ed310ebe2dc96932216f9c952df8"
+  revision: "c420c2f5c803a526ddb40d2b824e3fb122026811"
   source:
     path: "src/osm_toponym.R"
-    revision: "fc2e0aadc196ed310ebe2dc96932216f9c952df8"
-    generator_version: "1.1.0"
+    revision: "c420c2f5c803a526ddb40d2b824e3fb122026811"
+    generator_version: "1.1.1"
   contracts:
     toponymy:
       path: "contracts/Toponymy Reference Contract.md"
@@ -45,7 +45,7 @@ Replace `<repository-clone-url>` with the actual accessible repository location.
 After cloning, select and verify the shared snapshot:
 
 ```sh
-git -C path/to/data-protocols checkout --detach fc2e0aadc196ed310ebe2dc96932216f9c952df8
+git -C path/to/data-protocols checkout --detach c420c2f5c803a526ddb40d2b824e3fb122026811
 git -C path/to/data-protocols rev-parse HEAD
 git -C path/to/data-protocols diff --exit-code HEAD -- src/osm_toponym.R contracts/
 ```
