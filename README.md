@@ -15,17 +15,17 @@ The following full commit IDs identify the current committed source and contract
 | Component | Path | Commit to pin |
 | --- | --- | --- |
 | Toponym utility (`1.1.1`) | `src/osm_toponym.R` | `c420c2f5c803a526ddb40d2b824e3fb122026811` |
-| Toponymy Reference Contract (unversioned) | `contracts/Toponymy Reference Contract.md` | `b58095009bc9b2538fbcb8f29399b53eee46bec6` |
+| Toponymy Reference Contract (unversioned) | `contracts/Toponymy Reference Contract.md` | `43c05938f6517e2805f8c8854bef8b37452d8df8` |
 | Workbook contract (`2.0.0-draft.1`) | `contracts/Workbook Datasets — Source-of-Truth Contract.md` | `b58095009bc9b2538fbcb8f29399b53eee46bec6` |
 
-These are **Git commit IDs**, not file checksums. Each component pin is its most recent modifying commit. For a single checkout containing all three components listed above, pin **`c420c2f5c803a526ddb40d2b824e3fb122026811`**: both contracts at that revision are byte-for-byte identical to their versions at `b58095009bc9b2538fbcb8f29399b53eee46bec6`.
+These are **Git commit IDs**, not file checksums. Each component pin is its most recent modifying commit. For a single checkout containing all three components listed above, pin **`43c05938f6517e2805f8c8854bef8b37452d8df8`**. It contains the revised Toponymy Reference Contract; the utility and workbook contract are byte-for-byte identical to their respective component pins above.
 
 Example YAML for a consuming repository's manifest (illustrative keys; adapt to its manifest schema):
 
 ```yaml
 data_protocols:
   repository: "<repository-clone-url>"
-  revision: "c420c2f5c803a526ddb40d2b824e3fb122026811"
+  revision: "43c05938f6517e2805f8c8854bef8b37452d8df8"
   source:
     path: "src/osm_toponym.R"
     revision: "c420c2f5c803a526ddb40d2b824e3fb122026811"
@@ -33,7 +33,7 @@ data_protocols:
   contracts:
     toponymy:
       path: "contracts/Toponymy Reference Contract.md"
-      revision: "b58095009bc9b2538fbcb8f29399b53eee46bec6"
+      revision: "43c05938f6517e2805f8c8854bef8b37452d8df8"
     workbook_datasets:
       path: "contracts/Workbook Datasets — Source-of-Truth Contract.md"
       revision: "b58095009bc9b2538fbcb8f29399b53eee46bec6"
@@ -45,7 +45,7 @@ Replace `<repository-clone-url>` with the actual accessible repository location.
 After cloning, select and verify the shared snapshot:
 
 ```sh
-git -C path/to/data-protocols checkout --detach c420c2f5c803a526ddb40d2b824e3fb122026811
+git -C path/to/data-protocols checkout --detach 43c05938f6517e2805f8c8854bef8b37452d8df8
 git -C path/to/data-protocols rev-parse HEAD
 git -C path/to/data-protocols diff --exit-code HEAD -- src/osm_toponym.R contracts/
 ```
