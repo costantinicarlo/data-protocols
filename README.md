@@ -4,13 +4,13 @@ Shared conventions for reproducible scientific data curation and geographical re
 
 ## Current status
 
-The toponym utility reports generator version `1.1.0` and combines Nominatim reverse geocoding with Overpass place-node matching and disk caching. The workbook contract is `2.0.0-draft.1` (2026-09-07), proposed for review and adoption; its ingestion and validation pipeline is not implemented in this repository. The toponymy contract has no declared semantic version.
+The working toponym utility reports generator version `1.1.1` and combines Nominatim reverse geocoding with Overpass place-node matching and disk caching. The workbook contract is `2.0.0-draft.1` (2026-09-07), proposed for review and adoption; its ingestion and validation pipeline is not implemented in this repository. The toponymy contract has no declared semantic version.
 
 Use the immutable Git revisions below for pre-release adoption. No release tags are present in this checkout. A generator version or draft contract label alone does not identify exact file contents.
 
 ## Pinning source code and contracts
 
-The following full commit IDs identify the current committed source and contracts, verified on 2026-09-07:
+The following full commit IDs identify the last recorded committed source and contracts, verified on 2026-09-07. The working `1.1.1` HTTP-error handling patch is not included in these pins; commit and review it before recording a new source revision:
 
 | Component | Path | Commit to pin |
 | --- | --- | --- |
@@ -18,7 +18,7 @@ The following full commit IDs identify the current committed source and contract
 | Toponymy Reference Contract (unversioned) | `contracts/Toponymy Reference Contract.md` | `b58095009bc9b2538fbcb8f29399b53eee46bec6` |
 | Workbook contract (`2.0.0-draft.1`) | `contracts/Workbook Datasets — Source-of-Truth Contract.md` | `b58095009bc9b2538fbcb8f29399b53eee46bec6` |
 
-These are **Git commit IDs**, not file checksums. Each component pin is its most recent modifying commit. For a single checkout containing all three current components, pin **`fc2e0aadc196ed310ebe2dc96932216f9c952df8`**: both contracts at that revision are byte-for-byte identical to their versions at `b58095009bc9b2538fbcb8f29399b53eee46bec6`.
+These are **Git commit IDs**, not file checksums. Each component pin is its most recent modifying commit. For a single checkout containing all three components listed above, pin **`fc2e0aadc196ed310ebe2dc96932216f9c952df8`**: both contracts at that revision are byte-for-byte identical to their versions at `b58095009bc9b2538fbcb8f29399b53eee46bec6`.
 
 Example YAML for a consuming repository's manifest (illustrative keys; adapt to its manifest schema):
 
@@ -71,6 +71,7 @@ Record local configuration edits or patches separately from the upstream revisio
 | [examples/input_data.normalized.csv](examples/input_data.normalized.csv) | One-site input with the required `id,latitude,longitude` columns. |
 | [examples/input_data.toponyms.geojson](examples/input_data.toponyms.geojson) | Earlier lookup output for that example; predates the current status/provenance schema and contains an escaped attribution artifact. |
 | [data-protocols.code-workspace](data-protocols.code-workspace) | VS Code workspace opening this directory. |
+| [tests/test_osm_toponym.R](tests/test_osm_toponym.R) | Offline regression checks for service denials, diagnostics, cache reuse, and CLI status handling. |
 
 The contracts are the authoritative protocol text. Workbook-specific metadata belongs in the source workbook, especially `meta__readme` and `meta__tables`.
 
@@ -87,7 +88,7 @@ mkdir -p local/R-library inputs outputs
 Rscript -e 'install.packages(c("httr2", "jsonlite"), lib="local/R-library", repos="https://cloud.r-project.org")'
 ```
 
-Configuration is defined as constants near the start of `src/osm_toponym.R`. Set `CONTACT_EMAIL` to a real project contact before making requests. Review `NOMINATIM_URL`, `OVERPASS_URL`, `NOMINATIM_ZOOM` (15), `NOMINATIM_DELAY` (1.10 seconds), `PLACE_NODE_RADIUS_M` (5,000 metres), and `PLACE_TYPES`. These are not environment-variable or command-line options. Keep any local configuration changes in downstream provenance when using a pinned upstream revision.
+The script sends an identifying `data-protocols/osm_toponym/1.1.1` User-Agent by default. Set `OSM_CONTACT_EMAIL` to append a real project contact, or `OSM_USER_AGENT` to supply your own identifying application string. Empty or known placeholder User-Agents are rejected before processing. No fictitious contact is sent by default. Review `NOMINATIM_URL`, `OVERPASS_URL`, `NOMINATIM_ZOOM` (15), `NOMINATIM_DELAY` (1.10 seconds), `PLACE_NODE_RADIUS_M` (5,000 metres), and `PLACE_TYPES`. These service/search settings remain script constants, not environment-variable or command-line options. Keep any local configuration changes in downstream provenance when using a pinned upstream revision.
 
 The CSV must contain `id`, `latitude`, and `longitude`; additional fields are not copied to the output. Coordinates are decimal degrees, with latitude in [-90, 90] and longitude in [-180, 180]. Missing/non-finite coordinates stop the batch. Input uses `read.csv()` type inference, so purely numeric IDs may lose leading zeros; prefer explicit textual IDs such as `S01G1`.
 
@@ -111,7 +112,7 @@ For the existing local 2015 batch:
 )
 ```
 
-The script requires exactly two positional arguments: input CSV and output GeoJSON. It creates cache directories, but not the output's parent directory. It overwrites the requested output after the batch completes and prints a resolution summary. Errors caught per site produce unresolved records; a zero process exit code alone does not establish that every site resolved.
+The script requires exactly two positional arguments: input CSV and output GeoJSON. It creates cache directories, but not the output's parent directory. It overwrites the requested output after the batch completes and prints a resolution summary. Exit status is `0` when no records are unresolved, `2` when the written output contains unresolved records, and `1` for a fatal error or invalid invocation. Ambiguous and fallback records still need review even after exit status `0`.
 
 ## Resolution and output
 
@@ -122,7 +123,7 @@ Nominatim provides the initial geographical context. If it returns a node whose 
 | `node_exact` | Nominatim returned a place node, or Overpass found exactly one name-compatible place node. This is an automated classification, not human verification. |
 | `osm_fallback` | No matching place node was established; the original Nominatim object is retained. |
 | `ambiguous` | Multiple name-compatible nodes exist; the original Nominatim object is retained with candidates for review. |
-| `unresolved` | A caught error prevented resolution, including a failed Overpass request. |
+| `unresolved` | A caught nonfatal error prevented resolution, including exhausted transient Overpass failures. Access denials stop the entire batch instead. |
 
 The output is a GeoJSON `FeatureCollection` with attribution, generator/version, UTC generation time, and one Feature per input row. Resolved Features retain the source ID, canonical name and OSM reference, status and method, country/place context, original query coordinates, original Nominatim object references, and candidate-node summaries. Distance to the anchor is populated for selected place nodes.
 
@@ -136,10 +137,26 @@ Rerunning reuses readable cached responses and retries requests whose responses 
 
 **Read the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/) before submitting coordinates.** The public service requires application identification, attribution, caching for bulk work, and at most one request per second. Small one-time bulk jobs must use one thread on one machine; recurring jobs and jobs lasting longer than a day are restricted to four requests per minute. The script delays each uncached Nominatim request by 1.10 seconds; it does not automatically implement the stricter recurring-job limit. Do not submit confidential material. Select suitable services and rate limits for the intended workload.
 
+## HTTP failures and diagnosis
+
+An HTTP 403 means the service denied the request; it does not mean that coordinates are invalid or a locality is absent. The original local `sites_2020.toponyms.geojson` had 48 unresolved records with the same 403 and no service context. The old script sent a placeholder contact, continued across all rows, embedded terminal formatting in JSON messages, and exited successfully despite every lookup failing. That output alone cannot establish whether the service rejected the identification, the network/IP, or another access condition.
+
+The patched CLI was rerun on the same 48-site input on 2026-09-07: all 48 records resolved as `node_exact`, with IDs, order, and query coordinates verified. The original failure file is preserved locally as `local/sites_2020.before-fix.geojson`. The successful rerun supports application identification as a likely cause, but the original response details are insufficient to prove it.
+
+Version `1.1.1` identifies Nominatim versus Overpass in errors and includes a bounded plain-text excerpt of the server response. HTTP 401/403 stops immediately; exhausted HTTP 429 retries also stop the batch. Existing output remains unchanged and completed responses remain cached. Correct the access/configuration problem before rerunning; repeatedly retrying a denied service will not fix it.
+
+Requests have a 30-second timeout and at most four attempts, with exponential backoff and a 120-second retry budget. Transient HTTP 429/500/502/503/504 and transport failures are eligible for retries; server `Retry-After` guidance is handled by httr2. Permanent 401/403 responses are not retried. Other exhausted failures are recorded as unresolved with plain-text messages and cause CLI exit status `2`.
+
 ## Validation and maintenance
 
 The latest local 2015 run on 2026-09-07 produced 78 records, all classified `node_exact`: 72 used Nominatim place nodes directly and six used Overpass matching. Input IDs, order, and query coordinates were checked. One HTTP 504 recovered on a cached rerun. Execution used a local copy with the placeholder User-Agent replaced; the tracked source was unchanged. This run checks execution and output structure, not the scientific correctness of every match.
 
-There is no automated test suite, R package manifest, dependency lockfile, or workbook converter in this repository. The tracked example output predates version 1.1.0 and is not a current regression fixture. When changing the utility, validate with controlled responses before live requests and inspect unresolved, ambiguous, and fallback results. When changing contracts, keep their status/version explicit and update downstream pins after adoption.
+Run the offline regression checks from the repository root:
+
+```sh
+R_LIBS_USER="$PWD/local/R-library" Rscript tests/test_osm_toponym.R
+```
+
+The checks intercept HTTP requests and use temporary caches; they do not call public services. They cover Nominatim/Overpass access denials, preserving existing outputs, diagnostic formatting, retry classification, cache reuse, and incomplete-run exit status. There is no R package manifest, dependency lockfile, or workbook converter in this repository. The tracked example output predates version 1.1.0 and is not a current regression fixture. When changing the utility, validate with controlled responses before live requests and inspect unresolved, ambiguous, and fallback results. When changing contracts, keep their status/version explicit and update downstream pins after adoption.
 
 Keep source, contracts, and curated examples under version control. The `.gitignore` excludes OS metadata, R session state, editor/spreadsheet temporary files, local environment files, and the three working directories. CSV, JSON, GeoJSON, and workbook formats are not ignored globally.

@@ -72,7 +72,8 @@
 #   * requires results to be cached for bulk work;
 #   * should not be used for heavy recurring workloads.
 #
-# Replace CONTACT_EMAIL below with a real project/contact email address.
+# Optionally set OSM_CONTACT_EMAIL to a real project/contact email address.
+# OSM_USER_AGENT can override the identifying application User-Agent.
 #
 # For substantial or recurring workflows, use your own Nominatim/
 # Overpass infrastructure or another policy-compliant service.
@@ -96,15 +97,19 @@ OVERPASS_URL <- "https://overpass-api.de/api/interpreter"
 
 
 # ---------------------------------------------------------------------
-# IMPORTANT: replace this with a real contact address
+# Identify the application without sending a fictitious contact address.
 # ---------------------------------------------------------------------
 
-CONTACT_EMAIL <- "your.email@example.org"
+CONTACT_EMAIL <- trimws(Sys.getenv("OSM_CONTACT_EMAIL", ""))
 
 
-USER_AGENT <- sprintf(
-  "scientific-toponymy/1.1 (research use; contact: %s)",
-  CONTACT_EMAIL
+USER_AGENT <- Sys.getenv(
+  "OSM_USER_AGENT",
+  paste0(
+    "data-protocols/osm_toponym/1.1.1 (research locality lookup",
+    if (nzchar(CONTACT_EMAIL)) paste0("; contact: ", CONTACT_EMAIL) else "",
+    ")"
+  )
 )
 
 
@@ -465,6 +470,73 @@ osm_url <- function(
 # =====================================================================
 
 
+plain_diagnostic <- function(x) {
+  # httr2/cli conditions may contain terminal styling even in saved JSON.
+  x <- gsub("\033\\[[0-?]*[ -/]*[@-~]", "", x, perl = TRUE)
+  trimws(gsub("[[:space:][:cntrl:]]+", " ", x))
+}
+
+
+validate_user_agent <- function() {
+  if (!nzchar(trimws(USER_AGENT)) ||
+      grepl("your.email@example.org", USER_AGENT, fixed = TRUE)) {
+    stop("Set OSM_USER_AGENT to identify your application, or unset it to use the project default; do not use a placeholder contact.",
+         call. = FALSE)
+  }
+
+  invisible(TRUE)
+}
+
+
+api_request <- function(url) {
+  validate_user_agent()
+  request(url) |>
+    req_user_agent(USER_AGENT) |>
+    req_timeout(30) |>
+    req_retry(
+      max_tries = 4,
+      max_seconds = 120,
+      retry_on_failure = TRUE,
+      is_transient = function(resp) {
+        resp_status(resp) %in% c(429L, 500L, 502L, 503L, 504L)
+      },
+      backoff = ~ 2^.x
+    )
+}
+
+
+perform_api_request <- function(req, service) {
+  tryCatch(
+    req_perform(req),
+    error = function(e) {
+      status <- if (inherits(e, "httr2_http")) e$status else NULL
+      detail <- ""
+      if (!is.null(e$resp)) {
+        body <- tryCatch(resp_body_string(e$resp), error = function(e) "")
+        # Keep a bounded, plain-text server explanation, not response headers.
+        body <- plain_diagnostic(gsub("<[^>]*>", " ", body))
+        if (nzchar(body)) detail <- paste0(" Server response: ", substr(body, 1, 500))
+      }
+
+      message <- paste0(service, ": ", plain_diagnostic(conditionMessage(e)), detail)
+      denied <- !is.null(status) && status %in% c(401L, 403L, 429L)
+      if (denied) {
+        message <- paste0(
+          message,
+          " Batch stopped to avoid further requests to a denied or rate-limited service.",
+          " Check service access, application identification, and usage policy before rerunning.",
+          " Existing output is unchanged; successful API responses remain cached."
+        )
+      }
+
+      error <- simpleError(message, call = NULL)
+      if (denied) class(error) <- c("osm_service_denied", class(error))
+      stop(error)
+    }
+  )
+}
+
+
 reverse_osm <- function(
     lat,
     lon
@@ -506,12 +578,9 @@ reverse_osm <- function(
   # Public Nominatim request
   # -------------------------------------------------------------------
 
-  req <- request(
+  req <- api_request(
     NOMINATIM_URL
   ) |>
-    req_user_agent(
-      USER_AGENT
-    ) |>
     req_url_query(
       format = "jsonv2",
       lat = lat,
@@ -520,10 +589,6 @@ reverse_osm <- function(
       layer = "address",
       addressdetails = 1,
       namedetails = 1
-    ) |>
-    req_retry(
-      max_tries = 4,
-      backoff = ~ 2^.x
     )
 
 
@@ -533,8 +598,8 @@ reverse_osm <- function(
   )
 
 
-  resp <- req_perform(
-    req
+  resp <- perform_api_request(
+    req, "Nominatim"
   )
 
 
@@ -776,23 +841,16 @@ query_place_nodes <- function(
   )
 
 
-  req <- request(
+  req <- api_request(
     OVERPASS_URL
   ) |>
-    req_user_agent(
-      USER_AGENT
-    ) |>
     req_body_form(
       data = query
-    ) |>
-    req_retry(
-      max_tries = 4,
-      backoff = ~ 2^.x
     )
 
 
-  resp <- req_perform(
-    req
+  resp <- perform_api_request(
+    req, "Overpass"
   )
 
 
@@ -1809,6 +1867,11 @@ resolve_toponyms <- function(data) {
     )
 
 
+    if (inherits(result, "osm_service_denied")) {
+      result$message <- paste0("Site ", source_id, ": ", result$message)
+      stop(result)
+    }
+
     if (
       inherits(
         result,
@@ -1820,7 +1883,7 @@ resolve_toponyms <- function(data) {
         sprintf(
           "Could not resolve %s: %s",
           source_id,
-          conditionMessage(result)
+          plain_diagnostic(conditionMessage(result))
         ),
         call. = FALSE
       )
@@ -1831,7 +1894,7 @@ resolve_toponyms <- function(data) {
           source_id,
           lat,
           lon,
-          conditionMessage(result)
+          plain_diagnostic(conditionMessage(result))
         )
 
 
@@ -1895,7 +1958,7 @@ resolve_toponyms <- function(data) {
       "osm_toponym.R",
 
     generator_version =
-      "1.1.0",
+      "1.1.1",
 
     generated = format(
       Sys.time(),
@@ -1914,148 +1977,154 @@ resolve_toponyms <- function(data) {
 # =====================================================================
 
 
-args <- commandArgs(
-  trailingOnly = TRUE
-)
+main <- function(args = commandArgs(trailingOnly = TRUE)) {
+  if (
+    length(args) != 2
+  ) {
 
-
-if (
-  length(args) != 2
-) {
-
-  cat(
-    paste0(
-      "\n",
-      "Usage:\n",
-      "\n",
-      "  Rscript osm_toponym.R input.csv output.geojson\n",
-      "\n",
-      "Required input CSV columns:\n",
-      "\n",
-      "  id,latitude,longitude\n",
-      "\n",
-      "Example:\n",
-      "\n",
-      "  id,latitude,longitude\n",
-      "  CAS001,12.487631,-16.273819\n",
-      "  CAS002,12.512447,-16.221734\n",
-      "\n"
+    cat(
+      paste0(
+        "\n",
+        "Usage:\n",
+        "\n",
+        "  Rscript osm_toponym.R input.csv output.geojson\n",
+        "\n",
+        "Required input CSV columns:\n",
+        "\n",
+        "  id,latitude,longitude\n",
+        "\n",
+        "Example:\n",
+        "\n",
+        "  id,latitude,longitude\n",
+        "  CAS001,12.487631,-16.273819\n",
+        "  CAS002,12.512447,-16.221734\n",
+        "\n"
+      )
     )
-  )
 
 
-  quit(
-    status = 1
-  )
-}
+    return(1L)
+  }
 
 
-input_file <- args[[1]]
+  input_file <- args[[1]]
 
-output_file <- args[[2]]
+  output_file <- args[[2]]
 
 
-if (
-  !file.exists(
-    input_file
-  )
-) {
-
-  stop(
-    sprintf(
-      "Input file does not exist: %s",
+  if (
+    !file.exists(
       input_file
-    ),
-    call. = FALSE
+    )
+  ) {
+
+    stop(
+      sprintf(
+        "Input file does not exist: %s",
+        input_file
+      ),
+      call. = FALSE
+    )
+  }
+
+
+  validate_user_agent()
+
+
+  dat <- read.csv(
+    input_file,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
   )
-}
 
 
-dat <- read.csv(
-  input_file,
-  stringsAsFactors = FALSE,
-  check.names = FALSE
-)
-
-
-geojson <- resolve_toponyms(
-  dat
-)
-
-
-write_json(
-  geojson,
-  path = output_file,
-  pretty = TRUE,
-  auto_unbox = TRUE,
-  na = "null",
-  digits = NA
-)
-
-
-# =====================================================================
-# 18. SUMMARY
-# =====================================================================
-
-
-statuses <- vapply(
-  geojson$features,
-  function(x) {
-    x$properties$status
-  },
-  character(1)
-)
-
-
-message("")
-message(
-  sprintf(
-    "Wrote %d toponym records to %s",
-    length(
-      geojson$features
-    ),
-    output_file
+  geojson <- resolve_toponyms(
+    dat
   )
-)
 
 
-message("")
-message("Resolution summary:")
-
-
-summary_table <- sort(
-  table(statuses),
-  decreasing = TRUE
-)
-
-
-for (
-  status_name in names(
-    summary_table
+  write_json(
+    geojson,
+    path = output_file,
+    pretty = TRUE,
+    auto_unbox = TRUE,
+    na = "null",
+    digits = NA
   )
-) {
 
+
+  # =====================================================================
+  # 18. SUMMARY
+  # =====================================================================
+
+
+  statuses <- vapply(
+    geojson$features,
+    function(x) {
+      x$properties$status
+    },
+    character(1)
+  )
+
+
+  message("")
   message(
     sprintf(
-      "  %-15s %d",
-      status_name,
-      summary_table[[
-        status_name
-      ]]
+      "Wrote %d toponym records to %s",
+      length(
+        geojson$features
+      ),
+      output_file
     )
   )
+
+
+  message("")
+  message("Resolution summary:")
+
+
+  summary_table <- sort(
+    table(statuses),
+    decreasing = TRUE
+  )
+
+
+  for (
+    status_name in names(
+      summary_table
+    )
+  ) {
+
+    message(
+      sprintf(
+        "  %-15s %d",
+        status_name,
+        summary_table[[
+          status_name
+        ]]
+      )
+    )
+  }
+
+
+  message("")
+  message(
+    sprintf(
+      "API cache: %s",
+      normalizePath(
+        CACHE_DIR,
+        mustWork = FALSE
+      )
+    )
+  )
+
+  message("")
+
+  # A written file may still contain failed records. Signal that to CLI callers.
+  if (any(statuses == "unresolved")) 2L else 0L
 }
 
 
-message("")
-message(
-  sprintf(
-    "API cache: %s",
-    normalizePath(
-      CACHE_DIR,
-      mustWork = FALSE
-    )
-  )
-)
-
-message("")
+if (sys.nframe() == 0L) {
+  quit(status = main())
+}
