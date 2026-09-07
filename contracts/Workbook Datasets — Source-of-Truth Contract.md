@@ -4,7 +4,7 @@
 **Document date:** 2026-09-07  
 **Status:** Proposed extension of version 1.0; review and adopt before enforcement.  
 **Scope:** Source-of-truth Synology workbooks held in this folder.  
-**Implementation status:** This document specifies required behaviour. The previously supplied XLSX ingestion scaffold does not yet implement this version.
+**Implementation status:** This document specifies required behaviour. The [workbook compliance suite](../docs/Dataset%20Compliance.md) now implements XLSX/ODS snapshotting, observable structural and semantic checks, faithful extraction, and coherent publication. Coverage reports identify conditions that cannot be assessed from an export; a representative acceptance check is still required for the deployed source exporter.
 
 ## Purpose and responsibility
 

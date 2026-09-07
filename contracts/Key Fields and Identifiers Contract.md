@@ -6,7 +6,7 @@
 
 **Status:** Draft for adoption. Applies prospectively to newly assigned project identifiers; existing identifiers require explicit migration rather than automatic rewriting.
 
-**Implementation status:** This is a specification. The repository does not implement an identifier allocator or a validator for this contract. The toponym utility carries input identifiers into its output; it does not enforce these rules.
+**Implementation status:** This is a specification. The [workbook compliance suite](../docs/Dataset%20Compliance.md) validates declared identifier profiles and available assignment, alias, and lineage evidence, with unassessed conditions reported explicitly. It does not allocate or rewrite identifiers. The standalone toponym utility carries input identifiers into its output; it does not enforce these rules.
 
 ## Purpose and scope
 
