@@ -18,54 +18,54 @@ R_LIBS_USER="$PWD/local/R-library" Rscript src/run_compliance.R \
 
 The workbook's `workbook_id` must match `--source-id`. Install `jsonlite`, `xml2`, and `digest` as described in the guide. Each downloaded revision is retained; failed checks leave the last validated publication unchanged. Network geocoding is optional.
 
-Use the immutable Git revisions below for pre-release adoption. No release tags are present in this checkout. A generator version or draft contract label alone does not identify exact file contents.
+Use the immutable Git revisions below for pre-release review. Remote HEAD/tags and releases were checked on 2026-09-08: no tags or releases were present. These new pins exist locally only and have not been pushed. A generator version or draft contract label alone does not identify exact file contents.
 
 ## Pinning source code and contracts
 
-The following full commit IDs identify the current committed source and contracts, verified on 2026-09-07. The compliance suite pin includes its runtime, configuration, country-code reference, sample workbooks, and offline regression tests. Use the shared checkout below to obtain its contracts and usage guide as well. The standalone toponym utility remains at version `1.1.2`.
+The following full commit IDs identify the current committed source and contracts, verified locally on 2026-09-08. The compliance suite pin includes its runtime, configuration, country-code reference, sample workbooks, and offline regression tests. Use the shared checkout below to obtain its contracts and usage guide as well. The corrected standalone toponym utility is version `1.1.2`.
 
 | Component | Path | Commit to pin |
 | --- | --- | --- |
-| Toponym utility (`1.1.2`) | `src/osm_toponym.R` | `c420c2f5c803a526ddb40d2b824e3fb122026811` |
-| Workbook compliance suite (`0.1.0`) | `src/run_compliance.R`, `src/compliance/`, stage scripts and supporting files | `782018453240b6afd48e0c0c067b77e44015b486` |
-| Toponymy Reference Contract (unversioned) | `contracts/Toponymy Reference Contract.md` | `43c05938f6517e2805f8c8854bef8b37452d8df8` |
-| Workbook contract (`2.0.0-draft.1`) | `contracts/Workbook Datasets — Source-of-Truth Contract.md` | `d52cd484be376522dec74455fc87e9231290b81f` |
-| Key Fields and Identifiers Contract (`1.0.0-draft.1`) | `contracts/Key Fields and Identifiers Contract.md` | `d52cd484be376522dec74455fc87e9231290b81f` |
-| Geographical Coordinates Contract (`1.0.0-draft.1`) | `contracts/Geographical Coordinates Contract.md` | `d52cd484be376522dec74455fc87e9231290b81f` |
+| Toponym utility (`1.1.2`) | `src/osm_toponym.R` | `4270181a45d1cc4f82d44bf281989f96985878be` |
+| Workbook compliance suite (`0.1.0`) | `src/run_compliance.R`, `src/compliance/`, stage scripts and supporting files | `4270181a45d1cc4f82d44bf281989f96985878be` |
+| Toponymy Reference Contract (unversioned) | `contracts/Toponymy Reference Contract.md` | `4270181a45d1cc4f82d44bf281989f96985878be` |
+| Workbook contract (`2.0.0-draft.1`) | `contracts/Workbook Datasets — Source-of-Truth Contract.md` | `4270181a45d1cc4f82d44bf281989f96985878be` |
+| Key Fields and Identifiers Contract (`1.0.0-draft.1`) | `contracts/Key Fields and Identifiers Contract.md` | `4270181a45d1cc4f82d44bf281989f96985878be` |
+| Geographical Coordinates Contract (`1.0.0-draft.1`) | `contracts/Geographical Coordinates Contract.md` | `4270181a45d1cc4f82d44bf281989f96985878be` |
 
-These are **Git commit IDs**, not file checksums. Each component pin is its most recent modifying commit. For a single checkout containing all six components listed above, pin **`d52cd484be376522dec74455fc87e9231290b81f`**. It includes the compliance suite, all four contracts, and the usage guide. Each listed component is byte-for-byte identical to its component pin above.
+These are **Git commit IDs**, not file checksums. All six components were modified in the same implementation commit. The subsequent report/pin documentation commit does not change their bytes. For a single checkout containing all six components listed above, pin **`4270181a45d1cc4f82d44bf281989f96985878be`**. It includes the compliance suite, all four contracts, and the usage guide. Each listed component is byte-for-byte identical to its component pin above.
 
 Example YAML for a consuming repository's manifest (illustrative keys; adapt to its manifest schema):
 
 ```yaml
 data_protocols:
   repository: "<repository-clone-url>"
-  revision: "d52cd484be376522dec74455fc87e9231290b81f"
+  revision: "4270181a45d1cc4f82d44bf281989f96985878be"
   source:
     path: "src/osm_toponym.R"
-    revision: "c420c2f5c803a526ddb40d2b824e3fb122026811"
+    revision: "4270181a45d1cc4f82d44bf281989f96985878be"
     generator_version: "1.1.2"
   workbook_compliance:
     entry_point: "src/run_compliance.R"
     modules: "src/compliance/"
     reference_data: "references/"
-    revision: "782018453240b6afd48e0c0c067b77e44015b486"
+    revision: "4270181a45d1cc4f82d44bf281989f96985878be"
     pipeline_version: "0.1.0"
   contracts:
     toponymy:
       path: "contracts/Toponymy Reference Contract.md"
-      revision: "43c05938f6517e2805f8c8854bef8b37452d8df8"
+      revision: "4270181a45d1cc4f82d44bf281989f96985878be"
     workbook_datasets:
       path: "contracts/Workbook Datasets — Source-of-Truth Contract.md"
-      revision: "d52cd484be376522dec74455fc87e9231290b81f"
+      revision: "4270181a45d1cc4f82d44bf281989f96985878be"
       contract_version: "2.0.0-draft.1"
     key_fields:
       path: "contracts/Key Fields and Identifiers Contract.md"
-      revision: "d52cd484be376522dec74455fc87e9231290b81f"
+      revision: "4270181a45d1cc4f82d44bf281989f96985878be"
       contract_version: "1.0.0-draft.1"
     geographical_coordinates:
       path: "contracts/Geographical Coordinates Contract.md"
-      revision: "d52cd484be376522dec74455fc87e9231290b81f"
+      revision: "4270181a45d1cc4f82d44bf281989f96985878be"
       contract_version: "1.0.0-draft.1"
 ```
 
@@ -74,7 +74,7 @@ Replace `<repository-clone-url>` with the actual accessible repository location.
 After cloning, select and verify the shared snapshot:
 
 ```sh
-git -C path/to/data-protocols checkout --detach d52cd484be376522dec74455fc87e9231290b81f
+git -C path/to/data-protocols checkout --detach 4270181a45d1cc4f82d44bf281989f96985878be
 git -C path/to/data-protocols rev-parse HEAD
 git -C path/to/data-protocols diff --exit-code HEAD -- src/ contracts/ references/ config/
 ```
