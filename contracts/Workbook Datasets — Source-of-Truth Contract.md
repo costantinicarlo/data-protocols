@@ -433,3 +433,9 @@ The exact prefixes, role mapping, language convention, minimal metadata layout, 
 - **[S8] Synology Knowledge Center.** *Working with Data*, Synology Office, DSM 7. Data validation and conditional formatting. <https://kb.synology.com/en-global/DSM/help/Spreadsheet/sheet_working_with_data?version=7>
 
 Documentation consulted on 2026-09-07. Verify feature availability and exact controls on the installed Synology Office version before operational adoption.
+
+## Implementation correction notes (compliance 0.1.0 candidate)
+
+The corrected implementation validates selective declarations before observations, including empty/all-missing fields. Supplied numeric bounds require a declared numeric type; explicit empty vocabularies remain distinct from absent constraints. JSON vocabulary/missing-code arrays accept homogeneous scalar strings, finite numbers, or booleans with the comparison semantics documented in the [pipeline guide](../docs/Dataset%20Compliance.md#selective-declaration-semantics-in-the-corrected-implementation). Historical temporal missing codes remain exact, field-specific exceptions; they cannot supply required observations or identities.
+
+The parser's occupied-cell budget is per worksheet for both adapters, includes formula-only/excluded content, and is reserved before repeated ODS expansion. Ordinary blank trailing grid is not expanded into observations. Core errors prevent enrichment; final required coverage follows eligible enrichment. No eligible lookup evidence means `not_assessed`. These corrections enforce existing preservation/publication requirements without changing this draft's semantic version or introducing an exhaustive schema. Adoption and real-export acceptance remain separate decisions.

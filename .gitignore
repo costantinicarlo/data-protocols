@@ -35,3 +35,6 @@ Rplots.pdf
 # Python fixture-generator bytecode
 __pycache__/
 *.py[cod]
+
+# Retained API evidence at any normal working location
+.osm_toponym_cache/

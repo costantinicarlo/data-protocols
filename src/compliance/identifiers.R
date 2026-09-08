@@ -1,3 +1,21 @@
+finite_integer_declaration <- function(x, lower, upper) is.numeric(x) && length(x) == 1L && is.finite(x) && x == trunc(x) && x >= lower && x <= upper
+collection_profile <- function(ctx, profile, sheet, field) {
+  digits <- if ("serial_width" %in% names(profile)) profile$serial_width else 5L
+  year_digits <- if ("year_digits" %in% names(profile)) profile$year_digits else 2L
+  if (!finite_integer_declaration(digits, 1, 30) || !finite_integer_declaration(year_digits, 2, 4) || !year_digits %in% c(2, 4)) {
+    finding(ctx, "identifier.profile_definition", "error", "serial_width must be an integer 1..30 and year_digits must be 2 or 4", sheet, field = field); return(NULL)
+  }
+  years <- profile$year_range
+  if ((!is.list(years) && !is.numeric(years)) || !is.null(names(years)) || length(years) != 2L ||
+      !all(vapply(years, finite_integer_declaration, logical(1), lower = 0, upper = 9999))) {
+    finding(ctx, "identifier.year_range", "error", "year_range must be two integer years in 0..9999", sheet, field = field); return(NULL)
+  }
+  years <- unlist(years, use.names = FALSE)
+  if (years[1] > years[2] || (year_digits == 2 && years[2] - years[1] > 99)) {
+    finding(ctx, "identifier.year_range", "error", "Ordered year_range required; two-digit years allow at most 100 distinct suffixes", sheet, field = field); return(NULL)
+  }
+  list(digits = as.integer(digits), year_digits = as.integer(year_digits), years = years)
+}
 validate_identifiers <- function(ctx) {
   profiles <- metadata_json(ctx, "identifier_profiles", list())
   codes <- read.delim(file.path(COMPLIANCE_ROOT, "references", "iso3166.tab"), comment.char = "#", header = FALSE, colClasses = "character", quote = "")[[1]]
@@ -19,12 +37,17 @@ validate_identifiers <- function(ctx) {
       if (!is.null(profile) && !scalar(profile$type, "regex") %in% c("field_collection", "regex", "legacy", "external")) {
         finding(ctx, "identifier.profile_definition", "error", "Unknown identifier profile type", name, field = field, value = scalar(profile$type))
       }
+      collection <- if (!is.null(profile) && scalar(profile$type) == "field_collection") collection_profile(ctx, profile, name, field) else NULL
+      declaration <- validated_field_rule(ctx, name, field)
       for (i in seq_along(values)) {
         value <- values[i]
         required <- field == tab$key_field || scalar(rule$required) == "true"
         if (is.na(value)) {
           if (required) finding(ctx, "identifier.missing", "error", "Required identifier is blank", name, i + 1L, field)
           next
+        }
+        if (legacy_missing(value, declaration)) {
+          finding(ctx, "identifier.missing", "error", "A legacy missing code is not an assigned identity", name, i + 1L, field, value); next
         }
         if (tab$types[i, field] != "text") finding(ctx, "identifier.storage", "error", "Identifier is not stored as literal text", name, i + 1L, field, value)
         if (value != trimws(value)) finding(ctx, "identifier.whitespace", "error", "Identifier contains leading/trailing whitespace", name, i + 1L, field, value, "Reconcile against source assignment; do not silently trim")
@@ -33,11 +56,8 @@ validate_identifiers <- function(ctx) {
         pattern <- scalar(profile$pattern)
         width <- profile$width
         if (type == "field_collection") {
-          digits <- as.integer(profile$serial_width %||% 5L)
-          year_digits <- as.integer(profile$year_digits %||% 2L)
-          if (is.na(digits) || digits < 1L || digits > 30L || !year_digits %in% c(2L, 4L)) {
-            finding(ctx, "identifier.profile_definition", "error", "Invalid serial_width or year_digits", name, field = field); break
-          }
+          if (is.null(collection)) next
+          digits <- collection$digits; year_digits <- collection$year_digits
           suffix <- scalar(profile$child_pattern)
           pattern <- paste0("^[A-Z]{2}[0-9]{", year_digits, "}_[0-9]{", digits, "}", suffix, "$")
           if (grepl(pattern, value, perl = TRUE)) {
@@ -45,14 +65,10 @@ validate_identifiers <- function(ctx) {
             if (!country %in% codes) finding(ctx, "identifier.country", "error", "Country prefix is not in the bundled country-code list", name, i + 1L, field, value)
             serial <- substr(value, 4L + year_digits, 3L + year_digits + digits)
             if (grepl("^0+$", serial)) finding(ctx, "identifier.zero_serial", "error", "Zero serial is reserved as unissued", name, i + 1L, field, value)
-            years <- unlist(profile$year_range)
+            years <- collection$years
             yr <- as.integer(substr(value, 3, 2L + year_digits))
-            if (length(years) != 2L || years[2] < years[1] || years[2] - years[1] > 99L) {
-              finding(ctx, "identifier.year_range", "error", "Declare an unambiguous full-year range of at most 100 years", name, field = field)
-            } else {
-              candidates <- seq.int(years[1], years[2])
-              if (!yr %in% (if (year_digits == 2L) candidates %% 100 else candidates)) finding(ctx, "identifier.year", "error", "Year prefix lies outside the declared collection range", name, i + 1L, field, value)
-            }
+            valid_year <- if (year_digits == 4L) yr >= years[1] && yr <= years[2] else yr %in% (seq.int(years[1], years[2]) %% 100)
+            if (!valid_year) finding(ctx, "identifier.year", "error", "Year prefix lies outside the declared collection range", name, i + 1L, field, value)
             if (nzchar(suffix) && grepl("_0+$|_[A-Z]+0+$", substring(value, 4L + year_digits + digits))) finding(ctx, "identifier.zero_child", "error", "Zero child serial is reserved as unissued", name, i + 1L, field, value)
           }
         }

@@ -59,3 +59,7 @@ Expected geographical extents MAY supply review warnings. They must be documente
 Adopt coordinate mappings and representations in the source workbook; preserve existing downloads and literal values during migration. The general [Workbook Datasets — Source-of-Truth Contract](Workbook%20Datasets%20%E2%80%94%20Source-of-Truth%20Contract.md) continues to govern raw tables, source corrections, and publication.
 
 This contract does not require collecting invented precision, an assumed hemisphere, or a guessed CRS. Missing metadata must be supplied from evidence before dependent conversions or publication can be considered validated. Pin this contract's own Git revision after committing it; the draft label alone does not identify exact text.
+
+## Implementation correction note (compliance 0.1.0 candidate)
+
+Requested live toponym enrichment is assessed only when eligible converted coordinates are available. Core validation errors prevent requests; absence of eligible coordinates is `not_assessed` and fails a requirement for live enrichment. Sampling coordinates remain original observations, conversions remain derived data, and OSM anchors remain distinct geographical references. These execution checks do not change this contract's draft version or certify positioning accuracy.

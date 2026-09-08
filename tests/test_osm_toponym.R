@@ -76,12 +76,20 @@ run_tests <- function() {
             identical(readLines("output.geojson"), "previous output"))
   unlink(list.files(scope$NOMINATIM_CACHE_DIR, full.names = TRUE))
 
-  # The retry policy covers gateway timeouts while keeping denials permanent.
+  # Nested retries are disabled; the explicit attempt loop owns timing.
   req <- scope$api_request("https://example.test")
-  stopifnot(req$policies$retry_is_transient(reply(504L)),
-            req$policies$retry_is_transient(reply(429L)),
-            !req$policies$retry_is_transient(reply(403L)),
-            req$policies$retry_max_tries == 4L)
+  stopifnot(req$policies$retry_max_tries == 1L)
+  times <- numeric(); now <- 0
+  scope$NOMINATIM_DELAY <- 15
+  scope$REQUEST_CLOCK <- function() now
+  scope$REQUEST_SLEEP <- function(seconds) { now <<- now + seconds }
+  scope$REQUEST_STATE <- new.env(parent = emptyenv())
+  options(httr2_mock = function(req) {
+    times <<- c(times, now)
+    if (length(times) == 1L) reply(504L) else reply(body = reverse)
+  })
+  scope$perform_api_request(req, "Nominatim")
+  stopifnot(length(times) == 2L, diff(times) >= 15)
 
   # Successful responses are reused from disk and retain the output schema.
   calls <- 0L
@@ -92,7 +100,7 @@ run_tests <- function() {
   stopifnot(scope$main(c("input.csv", "output.geojson")) == 0L, calls == 2L)
   stopifnot(scope$main(c("input.csv", "output.geojson")) == 0L, calls == 2L)
   output <- jsonlite::read_json("output.geojson", simplifyVector = FALSE)
-  stopifnot(output$generator_version == "1.1.1", length(output$features) == 2L,
+  stopifnot(output$generator_version == "1.1.2", length(output$features) == 2L,
             all(vapply(output$features, function(f) f$properties$status == "node_exact",
                        logical(1))))
 

@@ -1,3 +1,9 @@
+ods_positive_integer <- function(text) {
+  if (length(text) != 1L || is.na(text) || !grepl("^[0-9]+$", text)) stop("Invalid ODS repetition/index")
+  value <- suppressWarnings(as.numeric(text))
+  if (!is.finite(value) || value < 1 || value > .Machine$integer.max) stop("Invalid ODS repetition/index")
+  value
+}
 attr_local <- function(node, name, default = NA_character_) {
   value <- xml2::xml_text(xml2::xml_find_first(node, paste0("./@*[local-name()='", name, "']")))
   if (is.na(value)) default else value
@@ -82,7 +88,9 @@ read_xlsx <- function(path, entries, max_cells) {
     doc <- zip_xml(path, target, entries)
     if (xml2::xml_name(xml2::xml_root(doc)) != "worksheet") stop("Unsupported non-worksheet sheet: ", name)
     nodes <- xml2::xml_find_all(doc, "//*[local-name()='sheetData']/*[local-name()='row']/*[local-name()='c']")
-    if (length(nodes) > max_cells) stop("Workbook cell limit exceeded")
+    occupied_nodes <- xml2::xml_find_all(doc, "//*[local-name()='sheetData']/*[local-name()='row']/*[local-name()='c'][*[local-name()='v' or local-name()='is' or local-name()='f']]")
+    if (length(occupied_nodes) > max_cells) stop("Worksheet occupied-cell limit exceeded")
+    nodes <- occupied_nodes # Do not materialise presentation-only blank grid cells.
     cells <- lapply(nodes, function(c) {
       ref <- attr_local(c, "r")
       if (!grepl("^[A-Z]+[1-9][0-9]*$", ref)) stop("Invalid/missing XLSX cell address")
@@ -124,7 +132,7 @@ ods_text <- function(node) {
     if (xml2::xml_type(n) == "text") return(xml2::xml_text(n))
     kind <- xml2::xml_name(n)
     if (kind == "s") {
-      count <- as.integer(attr_local(n, "c", "1")); if (is.na(count) || count > 1000000L) stop("Oversized ODS space sequence")
+      count <- ods_positive_integer(attr_local(n, "c", "1")); if (count > 1000000L) stop("Oversized ODS space sequence")
       return(strrep(" ", count))
     }
     if (kind == "tab") return("\t")
@@ -142,12 +150,12 @@ read_ods <- function(path, entries, max_cells) {
     name <- attr_local(tab, "name"); cells <- list(); merges <- character(); ri <- 1L; count <- 0L
     if (length(xml2::xml_find_all(tab, ".//*[local-name()='table']"))) stop("Nested ODS tables are unsupported")
     for (row in xml2::xml_find_all(tab, ".//*[local-name()='table-row']")) {
-      nr <- suppressWarnings(as.integer(attr_local(row, "number-rows-repeated", "1")))
-      if (is.na(nr) || nr < 1L) stop("Invalid ODS row repetition")
-      ci <- 1L; rowcells <- list()
+      nr <- ods_positive_integer(attr_local(row, "number-rows-repeated", "1"))
+      if (ri + nr - 1 > .Machine$integer.max) stop("Invalid ODS row index")
+      ci <- 1; rowcells <- list(); reserved <- 0
       for (cell in xml2::xml_find_all(row, "./*[local-name()='table-cell' or local-name()='covered-table-cell']")) {
-        nc <- suppressWarnings(as.integer(attr_local(cell, "number-columns-repeated", "1")))
-        if (is.na(nc) || nc < 1L) stop("Invalid ODS column repetition")
+        nc <- ods_positive_integer(attr_local(cell, "number-columns-repeated", "1"))
+        if (ci + nc - 1 > .Machine$integer.max) stop("Invalid ODS column index")
         formula <- attr_local(cell, "formula")
         type <- attr_local(cell, "value-type", "blank")
         text <- ods_text(cell)
@@ -163,20 +171,21 @@ read_ods <- function(path, entries, max_cells) {
         if (type == "date" && !is.na(value) && grepl("T", value)) type <- "datetime"
         if (!is.na(text) && grepl("^#(DIV/0!|N/A|VALUE!|REF!|NAME\\?|NUM!|NULL!)$", text) && type != "text") type <- "error"
         if (length(xml2::xml_find_all(cell, "./@*[local-name()='value-type' and .='error']"))) type <- "error"
-        span <- as.integer(attr_local(cell, "number-columns-spanned", "1"))
-        rspan <- as.integer(attr_local(cell, "number-rows-spanned", "1"))
+        span <- ods_positive_integer(attr_local(cell, "number-columns-spanned", "1"))
+        rspan <- ods_positive_integer(attr_local(cell, "number-rows-spanned", "1"))
         if (span > 1L || rspan > 1L) merges <- c(merges, cell_ref(ri, ci))
         occupied <- !is.na(value) || !is.na(formula)
         if (occupied) {
-          if (as.double(nc) * nr + count > max_cells) stop("Workbook occupied-cell limit exceeded")
-          for (j in seq_len(nc)) rowcells[[length(rowcells) + 1L]] <- list(col = ci + j - 1L, type = type, value = value, formula = formula)
+          if (nc > floor((max_cells - count - reserved) / nr)) stop("Worksheet occupied-cell limit exceeded")
+          reserved <- reserved + nc * nr
+          rowcells[[length(rowcells) + 1L]] <- list(col = ci, repeat_columns = nc, type = type, value = value, formula = formula)
         }
         ci <- ci + nc
         if (!is.finite(ci)) stop("Invalid ODS column index")
       }
-      if (length(rowcells)) for (k in seq_len(nr)) for (cell in rowcells) {
+      if (length(rowcells)) for (k in seq_len(nr)) for (cell in rowcells) for (j in seq_len(cell$repeat_columns)) {
         count <- count + 1L
-        cells[[count]] <- data.frame(row = ri + k - 1L, col = cell$col, ref = cell_ref(ri + k - 1L, cell$col),
+        cells[[count]] <- data.frame(row = ri + k - 1L, col = cell$col + j - 1, ref = cell_ref(ri + k - 1L, cell$col + j - 1),
                                     type = cell$type, value = cell$value, formula = cell$formula, stringsAsFactors = FALSE)
       }
       ri <- ri + nr
