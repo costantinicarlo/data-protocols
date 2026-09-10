@@ -106,7 +106,7 @@ CONTACT_EMAIL <- trimws(Sys.getenv("OSM_CONTACT_EMAIL", ""))
 USER_AGENT <- Sys.getenv(
   "OSM_USER_AGENT",
   paste0(
-    "data-protocols/osm_toponym/1.1.1 (research locality lookup",
+    "data-protocols/osm_toponym/1.1.2 (research locality lookup",
     if (nzchar(CONTACT_EMAIL)) paste0("; contact: ", CONTACT_EMAIL) else "",
     ")"
   )
@@ -412,7 +412,7 @@ read_cached_json <- function(path) {
   }
 
   tryCatch(
-    fromJSON(
+    jsonlite::fromJSON(
       path,
       simplifyVector = FALSE
     ),
@@ -426,7 +426,7 @@ write_cached_json <- function(
     path
 ) {
 
-  write_json(
+  jsonlite::write_json(
     object,
     path = path,
     pretty = FALSE,
@@ -488,52 +488,80 @@ validate_user_agent <- function() {
 }
 
 
+# One limiter per service in this resolver environment, shared across records/tables.
+# proc.time()["elapsed"] is elapsed process time, independent of civil-clock changes.
+REQUEST_CLOCK <- getOption("osm_toponym.clock", function() unname(proc.time()["elapsed"]))
+REQUEST_SLEEP <- getOption("osm_toponym.sleep", function(seconds) Sys.sleep(seconds))
+REQUEST_WALL_CLOCK <- getOption("osm_toponym.wall_clock", function() Sys.time())
+REQUEST_STATE <- new.env(parent = emptyenv())
+REQUEST_COOLDOWN <- new.env(parent = emptyenv())
+REQUEST_MAX_ATTEMPTS <- 4L
+REQUEST_BUDGET <- 120
+
 api_request <- function(url) {
   validate_user_agent()
-  request(url) |>
-    req_user_agent(USER_AGENT) |>
-    req_timeout(30) |>
-    req_retry(
-      max_tries = 4,
-      max_seconds = 120,
-      retry_on_failure = TRUE,
-      is_transient = function(resp) {
-        resp_status(resp) %in% c(429L, 500L, 502L, 503L, 504L)
-      },
-      backoff = ~ 2^.x
-    )
+  httr2::request(url) |>
+    httr2::req_user_agent(USER_AGENT) |>
+    httr2::req_timeout(30) |>
+    httr2::req_options(followlocation = FALSE) |>
+    httr2::req_retry(max_tries = 1, retry_on_failure = FALSE, is_transient = function(resp) FALSE) |>
+    httr2::req_error(is_error = function(resp) FALSE)
 }
-
-
+retry_after_seconds <- function(resp) {
+  hint <- httr2::resp_header(resp, "retry-after")
+  if (is.null(hint) || length(hint) != 1L || is.na(hint)) return(0)
+  if (grepl("^[0-9]+$", hint)) return(as.numeric(hint))
+  # IMF-fixdate, parsed without depending on the process's language/locale.
+  parts <- regmatches(hint, regexec("^[A-Za-z]{3}, ([0-9]{2}) ([A-Za-z]{3}) ([0-9]{4}) ([0-9]{2}:[0-9]{2}:[0-9]{2}) GMT$", hint))[[1]]
+  if (length(parts) != 5L) return(0)
+  month <- match(parts[3], c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+  if (is.na(month)) return(0)
+  date <- sprintf("%s-%02d-%s %s", parts[4], month, parts[2], parts[5])
+  parsed <- as.POSIXct(date, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
+  if (is.na(parsed) || format(parsed, "%Y-%m-%d %H:%M:%S", tz = "UTC") != date) return(0)
+  max(0, as.numeric(difftime(parsed, REQUEST_WALL_CLOCK(), units = "secs")))
+}
+api_failure <- function(service, status = NULL, detail = "Request failed") {
+  message <- paste0(service, ": ", if (!is.null(status)) paste0("HTTP ", status, ". ") else "", substr(plain_diagnostic(detail), 1, 500))
+  denied <- !is.null(status) && status %in% c(401L, 403L, 429L)
+  if (denied) message <- paste0(message, " Batch stopped to avoid further requests to a denied or rate-limited service. Existing output is unchanged; successful API responses remain cached.")
+  error <- simpleError(message, call = NULL)
+  if (denied) class(error) <- c("osm_service_denied", class(error))
+  stop(error)
+}
 perform_api_request <- function(req, service) {
-  tryCatch(
-    req_perform(req),
-    error = function(e) {
-      status <- if (inherits(e, "httr2_http")) e$status else NULL
-      detail <- ""
-      if (!is.null(e$resp)) {
-        body <- tryCatch(resp_body_string(e$resp), error = function(e) "")
-        # Keep a bounded, plain-text server explanation, not response headers.
-        body <- plain_diagnostic(gsub("<[^>]*>", " ", body))
-        if (nzchar(body)) detail <- paste0(" Server response: ", substr(body, 1, 500))
-      }
-
-      message <- paste0(service, ": ", plain_diagnostic(conditionMessage(e)), detail)
-      denied <- !is.null(status) && status %in% c(401L, 403L, 429L)
-      if (denied) {
-        message <- paste0(
-          message,
-          " Batch stopped to avoid further requests to a denied or rate-limited service.",
-          " Check service access, application identification, and usage policy before rerunning.",
-          " Existing output is unchanged; successful API responses remain cached."
-        )
-      }
-
-      error <- simpleError(message, call = NULL)
-      if (denied) class(error) <- c("osm_service_denied", class(error))
-      stop(error)
+  interval <- if (service == "Nominatim") NOMINATIM_DELAY else 0
+  if (!is.numeric(interval) || length(interval) != 1L || !is.finite(interval) || interval < 0) stop("Invalid service interval")
+  start <- REQUEST_CLOCK(); next_retry <- start; status <- NULL; detail <- "Retry budget exhausted"
+  for (attempt in seq_len(REQUEST_MAX_ATTEMPTS)) {
+    previous <- REQUEST_STATE[[service]]
+    cooldown <- REQUEST_COOLDOWN[[service]]
+    due <- max(next_retry, if (is.null(cooldown)) -Inf else cooldown, if (is.null(previous)) -Inf else previous + interval)
+    wait <- max(0, due - REQUEST_CLOCK())
+    if (REQUEST_CLOCK() + wait >= start + REQUEST_BUDGET) break
+    if (wait > 0) REQUEST_SLEEP(wait)
+    # Recheck after sleeping; a sleeper must never permit an early attempt.
+    if (REQUEST_CLOCK() < due) stop("Request sleeper returned before the service deadline")
+    remaining <- start + REQUEST_BUDGET - REQUEST_CLOCK()
+    if (remaining <= 0) break
+    REQUEST_STATE[[service]] <- REQUEST_CLOCK()
+    response <- tryCatch(httr2::req_perform(httr2::req_timeout(req, min(30, remaining))), error = identity)
+    if (inherits(response, "error")) {
+      status <- NULL; detail <- conditionMessage(response)
+      if (!inherits(response, "httr2_failure")) api_failure(service, detail = detail)
+      server_wait <- 0
+    } else {
+      status <- httr2::resp_status(response)
+      if (status >= 200L && status < 300L) return(response)
+      body <- tryCatch(httr2::resp_body_string(response), error = function(e) "")
+      detail <- paste0("Server response: ", gsub("<[^>]*>", " ", body))
+      if (!status %in% c(429L, 500L, 502L, 503L, 504L)) api_failure(service, status, detail)
+      server_wait <- retry_after_seconds(response)
     }
-  )
+    next_retry <- REQUEST_CLOCK() + max(2^attempt, server_wait)
+    REQUEST_COOLDOWN[[service]] <- next_retry
+  }
+  api_failure(service, status, detail)
 }
 
 
@@ -592,10 +620,6 @@ reverse_osm <- function(
     )
 
 
-  # Respect Nominatim public service rate.
-  Sys.sleep(
-    NOMINATIM_DELAY
-  )
 
 
   resp <- perform_api_request(
@@ -770,6 +794,36 @@ candidate_settlement_names <- function(
 # =====================================================================
 
 
+overpass_problem <- function(result) {
+  scalar_string <- function(x) is.character(x) && length(x) == 1L && !is.na(x)
+  if (!is.list(result) || is.null(names(result)) || anyDuplicated(names(result))) return("Invalid response object")
+  if ("remark" %in% names(result) && (!scalar_string(result$remark) || nzchar(result$remark)))
+    return("Overpass reported a remark; search completion is not established")
+  elements <- result$elements
+  if (!"elements" %in% names(result) || !is.list(elements) || !is.null(names(elements))) return("Missing or invalid elements array")
+  for (node in elements) {
+    if (!is.list(node) || is.null(names(node)) || anyDuplicated(names(node)) || !identical(node$type, "node")) return("Invalid candidate node")
+    id <- node$id
+    good_id <- (is.character(id) && length(id) == 1L && !is.na(id) && grepl("^[1-9][0-9]*$", id)) ||
+      (is.numeric(id) && length(id) == 1L && is.finite(id) && id > 0 && id == trunc(id))
+    coord <- function(x, bound) is.numeric(x) && length(x) == 1L && is.finite(x) && abs(x) <= bound
+    if (!good_id || !coord(node$lat, 90) || !coord(node$lon, 180)) return("Invalid candidate identity or coordinate")
+    tags <- node$tags
+    if (!is.list(tags) || is.null(names(tags)) || anyDuplicated(names(tags)) || !all(vapply(tags, scalar_string, logical(1))) ||
+        !scalar_string(tags$name) || !nzchar(trimws(tags$name)) || !scalar_string(tags$place) || !tags$place %in% PLACE_TYPES) return("Invalid candidate tags")
+  }
+  ""
+}
+retain_lookup_failure <- function(cache_file, problem, quarantine = FALSE) {
+  directory <- file.path(CACHE_DIR, "failures")
+  dir.create(directory, recursive = TRUE, showWarnings = FALSE)
+  evidence <- tempfile(paste0(basename(cache_file), "-"), tmpdir = directory)
+  if (quarantine && file.exists(cache_file)) {
+    # Move, never overwrite/delete the old response; marker explains its status.
+    if (!file.rename(cache_file, evidence)) stop("Cannot quarantine failed cache response")
+  }
+  jsonlite::write_json(list(status = "lookup_failed", diagnostic = substr(plain_diagnostic(problem), 1, 500)), paste0(evidence, ".failure.json"), auto_unbox = TRUE)
+}
 query_place_nodes <- function(
     lat,
     lon,
@@ -802,15 +856,10 @@ query_place_nodes <- function(
     cache_file
   )
 
-  if (!is.null(cached)) {
-
-    if (is.null(cached$elements)) {
-      return(list())
-    }
-
-    return(
-      cached$elements
-    )
+  if (file.exists(cache_file)) {
+    problem <- overpass_problem(cached)
+    if (!nzchar(problem)) return(cached$elements)
+    retain_lookup_failure(cache_file, problem, quarantine = TRUE)
   }
 
 
@@ -854,21 +903,13 @@ query_place_nodes <- function(
   )
 
 
-  result <- resp_body_json(
-    resp,
-    simplifyVector = FALSE
-  )
-
-
-  write_cached_json(
-    result,
-    cache_file
-  )
-
-
-  if (is.null(result$elements)) {
-    return(list())
+  result <- tryCatch(httr2::resp_body_json(resp, simplifyVector = FALSE), error = function(e) NULL)
+  problem <- overpass_problem(result)
+  if (nzchar(problem)) {
+    retain_lookup_failure(cache_file, problem)
+    stop(paste0("Overpass: ", problem), call. = FALSE)
   }
+  write_cached_json(result, cache_file)
 
 
   result$elements
@@ -1808,6 +1849,19 @@ resolve_toponyms <- function(data) {
   }
 
 
+  if (anyNA(names(data)) || any(!nzchar(names(data))) || anyDuplicated(names(data))) stop("CSV headers must be nonblank and unique", call. = FALSE)
+  if (!is.character(data$id)) stop("Identifiers must be supplied as literal character strings", call. = FALSE)
+  invalid <- which(is.na(data$id) | !nzchar(trimws(data$id)))
+  if (length(invalid)) stop("Missing/blank identifier at input row(s): ", paste(invalid + 1L, collapse = ", "), call. = FALSE)
+  numeric_pattern <- "^[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?$"
+  for (axis in c("latitude", "longitude")) {
+    x <- data[[axis]]
+    valid <- !is.na(x) & grepl(numeric_pattern, as.character(x), perl = TRUE)
+    if (any(!valid)) stop("Invalid ", axis, " at input row(s): ", paste(which(!valid) + 1L, collapse = ", "), call. = FALSE)
+    data[[axis]] <- suppressWarnings(as.numeric(x))
+  }
+  for (i in seq_len(nrow(data))) stop_bad_coordinates(data$latitude[i], data$longitude[i], paste0("row ", i + 1L, ": ", data$id[i]))
+
   features <- vector(
     "list",
     nrow(data)
@@ -1958,7 +2012,7 @@ resolve_toponyms <- function(data) {
       "osm_toponym.R",
 
     generator_version =
-      "1.1.1",
+      "1.1.2",
 
     generated = format(
       Sys.time(),
@@ -2031,19 +2085,27 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
   validate_user_agent()
 
 
-  dat <- read.csv(
-    input_file,
-    stringsAsFactors = FALSE,
-    check.names = FALSE
-  )
+  headers <- scan(input_file, what = "", sep = ",", quote = "\"", nlines = 1L, strip.white = FALSE, quiet = TRUE, comment.char = "", fileEncoding = "UTF-8")
+  if (anyNA(headers) || any(!nzchar(headers)) || anyDuplicated(headers) || !all(c("id", "latitude", "longitude") %in% headers)) stop("Malformed required CSV headers", call. = FALSE)
+  counts <- utils::count.fields(input_file, sep = ",", quote = "\"", comment.char = "", blank.lines.skip = FALSE)
+  # NA counts are continuation lines inside quoted multiline fields.
+  widths <- counts[!is.na(counts)]
+  if (!length(widths) || any(widths != widths[1])) stop("Malformed CSV record width", call. = FALSE)
+  dat <- withCallingHandlers(utils::read.csv(
+    input_file, colClasses = "character", na.strings = character(),
+    strip.white = FALSE, blank.lines.skip = FALSE, fill = FALSE,
+    row.names = NULL, stringsAsFactors = FALSE, check.names = FALSE, encoding = "UTF-8"
+  ), warning = function(w) stop("Malformed CSV: ", conditionMessage(w), call. = FALSE))
 
+
+  if (!identical(names(dat), headers)) stop("CSV headers were changed by the parser", call. = FALSE)
 
   geojson <- resolve_toponyms(
     dat
   )
 
 
-  write_json(
+  jsonlite::write_json(
     geojson,
     path = output_file,
     pretty = TRUE,

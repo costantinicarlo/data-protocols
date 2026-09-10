@@ -1,9 +1,55 @@
 strict_number <- function(x) !is.na(x) & grepl("^[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?$", x, perl = TRUE) & is.finite(suppressWarnings(as.numeric(x)))
+declaration_blank <- function(x) is.null(x) || (is.atomic(x) && length(x) == 1L && (is.na(x) || (is.character(x) && !nzchar(trimws(x)))))
 json_values <- function(ctx, text, sheet, field) {
-  if (!nzchar(scalar(text))) return(NULL)
-  tryCatch(unlist(jsonlite::fromJSON(text, simplifyVector = FALSE)), error = function(e) {
-    finding(ctx, "metadata.field_json", "error", "Invalid field JSON metadata", sheet, field = field, value = text); NULL
+  if (declaration_blank(text)) return(NULL)
+  tryCatch({
+    if (!is.character(text) || length(text) != 1L || !grepl("^\\s*\\[", text, perl = TRUE)) stop("Expected JSON array")
+    values <- jsonlite::fromJSON(text, simplifyVector = FALSE)
+    supported <- function(x) is.atomic(x) && length(x) == 1L && !is.na(x) &&
+      (is.character(x) || is.logical(x) || (is.numeric(x) && is.finite(x)))
+    if (!is.list(values) || !is.null(names(values)) || !all(vapply(values, supported, logical(1)))) stop("Expected scalar literals")
+    kinds <- vapply(values, function(x) if (is.numeric(x)) "number" else typeof(x), character(1))
+    if (length(unique(kinds)) > 1L) stop("Mixed JSON element types")
+    # character(0) is an explicitly empty vocabulary; NULL means absent.
+    vapply(values, as.character, character(1))
+  }, error = function(e) {
+    finding(ctx, "metadata.field_json", "error", "Field JSON must be an array of homogeneous strings, finite numbers, or booleans; no objects, nested values, or nulls", sheet, field = field, value = scalar(text)); NULL
   })
+}
+validated_field_rule <- function(ctx, sheet, field) {
+  key <- paste(sheet, field, sep = "\r")
+  rule <- field_rule(ctx, sheet, field)
+  cached <- ctx$validated_rules[[key]]
+  if (!is.null(cached) && identical(cached$source, rule)) return(cached)
+  type <- rule$type; required <- rule$required
+  if (!declaration_blank(type) && (!is.character(type) || length(type) != 1L || !type %in% c("text", "number", "integer", "boolean", "date", "datetime", "time", "duration", "partial_date"))) {
+    finding(ctx, "metadata.unknown_type", "error", "Unrecognised selective field type", sheet, field = field)
+    type <- ""
+  }
+  if (!declaration_blank(required) && (!is.character(required) || length(required) != 1L || !required %in% c("true", "false")))
+    finding(ctx, "metadata.required", "error", "required must be literal true or false", sheet, field = field)
+  bounds <- list()
+  for (bound in c("minimum", "maximum")) if (!declaration_blank(rule[[bound]])) {
+    x <- rule[[bound]]
+    if (!scalar(type) %in% c("number", "integer")) finding(ctx, "metadata.bound_type", "error", "Numeric bounds require type number or integer", sheet, field = field)
+    if (!is.atomic(x) || length(x) != 1L || is.logical(x) || !strict_number(as.character(x)))
+      finding(ctx, "metadata.numeric_bound", "error", paste(bound, "must be a finite numeric scalar"), sheet, field = field)
+    else bounds[[bound]] <- as.numeric(x)
+  }
+  if (length(bounds) == 2L && bounds$minimum > bounds$maximum) finding(ctx, "metadata.numeric_bound", "error", "minimum must not exceed maximum", sheet, field = field)
+  result <- list(source = rule, type = scalar(type), required = identical(required, "true"), bounds = bounds,
+                 missing_codes = json_values(ctx, rule$missing_codes, sheet, field),
+                 allowed_values = json_values(ctx, rule$allowed_values, sheet, field))
+  ctx$validated_rules[[key]] <- result
+  result
+}
+legacy_missing <- function(value, declaration) !is.na(value) & value %in% declaration$missing_codes
+report_legacy_missing <- function(ctx, declaration, sheet, field, row, value) {
+  key <- paste(sheet, field, row, sep = "\r")
+  if (isTRUE(ctx$legacy_reported[[key]])) return(invisible(NULL))
+  ctx$legacy_reported[[key]] <- TRUE
+  if (declaration$required) finding(ctx, "value.required", "error", "Legacy missing code does not satisfy required evidence", sheet, row, field, value)
+  finding(ctx, "value.legacy_missing_code", "information", "Documented legacy missing code retained verbatim", sheet, row, field, value)
 }
 validate_values <- function(ctx) {
   for (name in names(ctx$tables)) {
@@ -12,24 +58,23 @@ validate_values <- function(ctx) {
     declared <- 0L
     for (field in setdiff(names(tab$data), tab$excluded)) {
       x <- tab$data[[field]]; rule <- field_rule(ctx, name, field)
-      type <- scalar(rule$type); if (nzchar(type)) declared <- declared + 1L
-      if (nzchar(type) && !type %in% c("text", "number", "integer", "boolean", "date", "datetime", "time", "duration", "partial_date")) finding(ctx, "metadata.unknown_type", "error", "Unrecognised selective field type", name, field = field, value = type)
-      missing_codes <- json_values(ctx, rule$missing_codes, name, field)
-      values <- json_values(ctx, rule$allowed_values, name, field)
+      declaration <- validated_field_rule(ctx, name, field)
+      type <- declaration$type; if (nzchar(type)) declared <- declared + 1L
+      values <- declaration$allowed_values
       if (nzchar(scalar(rule$ref_sheet))) {
         ref <- ctx$tables[[scalar(rule$ref_sheet)]]
         ref_field <- scalar(rule$ref_field)
         if (is.null(ref) || ref$role != "ref" || !ref_field %in% setdiff(names(ref$data), ref$excluded)) finding(ctx, "value.reference_definition", "error", "Controlled vocabulary must name a retained ref__ field", name, field = field)
-        else values <- ref$data[[ref_field]]
+        else values <- if (is.null(values)) ref$data[[ref_field]] else intersect(values, ref$data[[ref_field]])
       }
       for (i in seq_along(x)) {
         value <- x[i]
         if (is.na(value)) {
-          if (scalar(rule$required) == "true") finding(ctx, "value.required", "error", "Declared required observation is blank", name, i + 1L, field)
+          if (declaration$required) finding(ctx, "value.required", "error", "Declared required observation is blank", name, i + 1L, field)
           next
         }
-        if (value %in% missing_codes) {
-          finding(ctx, "value.legacy_missing_code", "information", "Documented legacy missing code retained verbatim", name, i + 1L, field, value); next
+        if (legacy_missing(value, declaration)) {
+          report_legacy_missing(ctx, declaration, name, field, i + 1L, value); next
         }
         if (type == "text" && tab$types[i, field] != "text") finding(ctx, "value.text_type", "error", "Declared text field is not stored as literal text", name, i + 1L, field, value)
         if (type %in% c("number", "integer")) {
@@ -38,10 +83,9 @@ validate_values <- function(ctx) {
           }
           num <- as.numeric(value)
           if (type == "integer" && num != trunc(num)) finding(ctx, "value.integer", "error", "Non-integral value in integer field", name, i + 1L, field, value)
-          for (bound in c("minimum", "maximum")) if (nzchar(scalar(rule[[bound]]))) {
-            limit <- suppressWarnings(as.numeric(rule[[bound]]))
-            if (!is.finite(limit)) finding(ctx, "metadata.numeric_bound", "error", "Invalid numeric bound", name, field = field)
-            else if ((bound == "minimum" && num < limit) || (bound == "maximum" && num > limit)) finding(ctx, "value.bound", "error", paste("Value violates declared", bound), name, i + 1L, field, value)
+          for (bound in names(declaration$bounds)) {
+            limit <- declaration$bounds[[bound]]
+            if ((bound == "minimum" && num < limit) || (bound == "maximum" && num > limit)) finding(ctx, "value.bound", "error", paste("Value violates declared", bound), name, i + 1L, field, value)
           }
         }
         if (type == "boolean" && !value %in% c("TRUE", "FALSE")) finding(ctx, "value.boolean", "error", "Boolean must use consistent TRUE/FALSE representation or an explicit categorical profile", name, i + 1L, field, value)
@@ -74,7 +118,7 @@ validate_temporal_fields <- function(ctx) {
     tab <- ctx$tables[[name]]
     if (!tab$usable || !tab$role %in% c("data", "ref")) next
     for (field in setdiff(names(tab$data), tab$excluded)) {
-      rule <- field_rule(ctx, name, field); type <- scalar(rule$type)
+      rule <- field_rule(ctx, name, field); declaration <- validated_field_rule(ctx, name, field); type <- declaration$type
       inferred <- if (grepl("_datetime$", field)) "datetime" else if (grepl("_date$", field)) "date" else if (grepl("_time$", field)) "time" else ""
       if (!nzchar(type)) type <- inferred
       native <- unique(tab$types[, field]); native <- setdiff(native, "blank")
@@ -83,7 +127,8 @@ validate_temporal_fields <- function(ctx) {
       zone <- scalar(rule$timezone, scalar(ctx$metadata$timezone))
       if (nzchar(zone) && !zone %in% c("unknown", "UTC", OlsonNames())) finding(ctx, "temporal.timezone", "error", "Unknown timezone declaration", name, field = field, value = zone)
       x <- tab$data[[field]]
-      for (i in which(!is.na(x))) {
+      for (i in which(legacy_missing(x, declaration))) report_legacy_missing(ctx, declaration, name, field, i + 1L, x[i])
+      for (i in which(!is.na(x) & !legacy_missing(x, declaration))) {
         value <- x[i]; valid <- TRUE
         if (type == "date") valid <- valid_date(value)
         if (type == "time") {

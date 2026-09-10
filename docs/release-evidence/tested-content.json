@@ -1,0 +1,186 @@
+{
+  "implementation_commit": "4270181a45d1cc4f82d44bf281989f96985878be",
+  "scope": "All tracked content in the tested implementation commit; subsequent README/report/evidence changes are documentation-only.",
+  "files": [
+    {
+      "path": ".github/workflows/regression.yml",
+      "sha256": "fc5579f751d0310203a2e6fa149535b40fb5693ab540342ac2c106cbd4d4c6b0"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "c1523b05a6bafeb6d79ff62796c8e2d8754358b92857c30c66ec2951424ed7bf"
+    },
+    {
+      "path": "README.md",
+      "sha256": "323072ae011c75d20b8f2a224a0adbbda50d515ecc0b820b21226ea984af43ff"
+    },
+    {
+      "path": "config/compliance.example.json",
+      "sha256": "266bc61d08677ec55438ae7e15f8e940e13101d00bbbc01bb11acf7258571dff"
+    },
+    {
+      "path": "contracts/Geographical Coordinates Contract.md",
+      "sha256": "34ce00835b81ffe659ddf45f7846c49194b33935218aac68e40b1c0a6bb03750"
+    },
+    {
+      "path": "contracts/Key Fields and Identifiers Contract.md",
+      "sha256": "dfc3385d1c0d53d471fca32134a3fb547815d120dad397b3843f43abc6c4f67d"
+    },
+    {
+      "path": "contracts/Toponymy Reference Contract.md",
+      "sha256": "d3ad299d736638bb18fad38224ccc12b05be243621c528e5e8fef153857c10ee"
+    },
+    {
+      "path": "contracts/Workbook Datasets — Source-of-Truth Contract.md",
+      "sha256": "de30011f31ac50fd1af04a46df6abfa0483ab8916cbb65d84ab43327041ed58d"
+    },
+    {
+      "path": "data-protocols.code-workspace",
+      "sha256": "69e7b37e2ebdaf8fc313bf6cb74882fed65895e5f853736e65759bafb333bc6b"
+    },
+    {
+      "path": "docs/Dataset Compliance.md",
+      "sha256": "b352e213a8849f99f3e7dc9356594508d0bded4d7db833bd89817ca1df50ee21"
+    },
+    {
+      "path": "examples/compliance/collection.ods",
+      "sha256": "10863a75c1a74c7249c6592df7c27418d902865422ea79112648f4e21eaeff4b"
+    },
+    {
+      "path": "examples/compliance/collection.xlsx",
+      "sha256": "e5bc69d5129d730f1029caef1e9e40703dde2821a39ce2750b0ad7fb68e00629"
+    },
+    {
+      "path": "examples/example_toponym.json",
+      "sha256": "e86b37e95d081de4db23ea70ede2536a2a489a03a8974306dd9d8c929340c962"
+    },
+    {
+      "path": "examples/input_data.normalized.csv",
+      "sha256": "4a27b7c0b8b653994d5d992b3ffce22f7f07a1793fc36b062333213a541caf08"
+    },
+    {
+      "path": "examples/input_data.toponyms.geojson",
+      "sha256": "59d82ab86be876b018f2fc535b1eb5a1965c0c32302df8f4a0c35a0c06a8e429"
+    },
+    {
+      "path": "references/iso3166.tab",
+      "sha256": "837c80785080c8433fd9d4ea87e78f161ac7a40389301c5153d4f90198baeb2a"
+    },
+    {
+      "path": "src/build_compliance_report.R",
+      "sha256": "becfbf2c6e068cf29e672afcf3124af54ce1a5b7cb8f5fbd50b24fb6998869d6"
+    },
+    {
+      "path": "src/compliance/common.R",
+      "sha256": "1d910a7d0dd0aeb7eefed47c2e0947df11a8f7abd3f5691108ab74e943050455"
+    },
+    {
+      "path": "src/compliance/coordinates.R",
+      "sha256": "796cdd72344180b937cf6a966d7e03f225e1697c4cda9771e9fd9db8716d0802"
+    },
+    {
+      "path": "src/compliance/identifiers.R",
+      "sha256": "f16cb14136231199b6b3aa959fc7a5912a269455faa586efa1f8ffe59bef16cf"
+    },
+    {
+      "path": "src/compliance/load.R",
+      "sha256": "6f97c2cd57a40dbc74bf2957eae916bc6653aeac252490e1f2e5c0709f881f8a"
+    },
+    {
+      "path": "src/compliance/pipeline.R",
+      "sha256": "9eedd023b19edbe14a858394546d86607e6aaa9d456c55044231fbda45e1b2dc"
+    },
+    {
+      "path": "src/compliance/structure.R",
+      "sha256": "11e4fd03305d2d5bc5067431fd86a9055975241464c7913e79e618312dd95c03"
+    },
+    {
+      "path": "src/compliance/values.R",
+      "sha256": "e27203cf84eb14ff1d1c4fac6d5bf6a35bf329c8117e3b2c3a73395241c1d9ac"
+    },
+    {
+      "path": "src/compliance/workbook.R",
+      "sha256": "1b930cc38aec7b0b0b22a70252c01d20830db1c3d2c998c69147608cc1fb813f"
+    },
+    {
+      "path": "src/extract_original_tables.R",
+      "sha256": "8fd197c230bf2bc64bb81f149ec8b1f706ca21cf2bdfc03d295ccc04626997ba"
+    },
+    {
+      "path": "src/inspect_dataset.R",
+      "sha256": "7cc6b07591e5231932df9d8e101394fb08a7d77c740428d17a37e7d1e78c3405"
+    },
+    {
+      "path": "src/osm_toponym.R",
+      "sha256": "0d734cf5e2a8f9b8028cb8074fffe3987f0b1700c69a5d1d1ae4f85129971d95"
+    },
+    {
+      "path": "src/run_compliance.R",
+      "sha256": "003b2ba4d5238761644c3a8a76e8e0d61880ca0a46569e376cbe4e61c2af975f"
+    },
+    {
+      "path": "src/snapshot_source.R",
+      "sha256": "ef32ff7a73221c27d06e9c658c8c12925ff6335b2fd64f1dd5e6fa891716f560"
+    },
+    {
+      "path": "src/standardize_coordinates.R",
+      "sha256": "dc0f8c0178dae730daecf22af576e790f47c018a67fdf4e20416afaf35fb98d5"
+    },
+    {
+      "path": "src/validate_coordinates.R",
+      "sha256": "d207da427792585c40ba328b07763fbcf8c8a3efb5f8453e8029d3e430311e47"
+    },
+    {
+      "path": "src/validate_identifiers.R",
+      "sha256": "d9a03c769e57e49cd67998d5f37da6d9bf355d5345acc0958dd434789d805a7f"
+    },
+    {
+      "path": "src/validate_lineage.R",
+      "sha256": "56873bcab055ecc4e70d941bfcfbda7f1a7bb694e8f1b69842a2893686a1a1cc"
+    },
+    {
+      "path": "src/validate_temporal_fields.R",
+      "sha256": "fbfc46c619f698e5d7c9a3f1796f17ac32afa980326082420216a349347d3154"
+    },
+    {
+      "path": "src/validate_toponymy.R",
+      "sha256": "228852e45fef35fbd36c5406e8625cba0bd3bad30cbd84a9a84568570920e0c2"
+    },
+    {
+      "path": "src/validate_values.R",
+      "sha256": "5f6d13546123226a20a62a97805bb76c2807b58c60c06c3bbe498d10cf2b1096"
+    },
+    {
+      "path": "src/validate_workbook.R",
+      "sha256": "ca247a39f67ff81d87b577e26e166ad80334f91bbea8821d13e14759663c245f"
+    },
+    {
+      "path": "tests/make_hardening_fixtures.py",
+      "sha256": "d4fed8374133e3df47c9e42a3377ca369e649ef944c8c254cb4ef74176d49dee"
+    },
+    {
+      "path": "tests/make_workbook_fixtures.py",
+      "sha256": "7c749158c1e3a42a6907ae2c8661cd68772237d0735cf43d2e7016e43bf6adcf"
+    },
+    {
+      "path": "tests/run_all.R",
+      "sha256": "a26b1216dbf227ed3d346f4d90f9d5ca8b57548b6a2276434abd1b4bc0c52b8e"
+    },
+    {
+      "path": "tests/test_compliance.R",
+      "sha256": "1b242d1aba6abe6cf456950f6c1382f78579b5671c0d302fb2546df91dca41f9"
+    },
+    {
+      "path": "tests/test_entrypoints.R",
+      "sha256": "30f5502c1b742b1dcee306ffbbede34acd0b9de3fd6c8bff13be2cc6c209ee54"
+    },
+    {
+      "path": "tests/test_hardening.R",
+      "sha256": "3fb1246595de23c104f526c764744b5514d5f0c19b8ce28777b5286e13d43612"
+    },
+    {
+      "path": "tests/test_osm_toponym.R",
+      "sha256": "c51d90e4f75a10778f2177c67815adc27af7f132eb4b20a6dec27704a80d5a5b"
+    }
+  ]
+}

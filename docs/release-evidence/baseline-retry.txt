@@ -1,0 +1,3 @@
+Audited generator 1.1.1; configured interval: 15 seconds
+Actual transport attempt timestamps (fake monotonic seconds): 15, 15
+Observed gap: 0 seconds; defect reproduced with Retry-After: 0.

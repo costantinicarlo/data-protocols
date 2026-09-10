@@ -1,8 +1,14 @@
 #!/usr/bin/env Rscript
+run_compliance_tests <- function() {
+old_options <- options(httr2_mock = function(req) stop("Unexpected public request during offline tests"))
+old_wd <- getwd()
+on.exit({options(old_options); setwd(old_wd)}, add = TRUE)
+stopifnot(requireNamespace("httr2", quietly = TRUE))
 root <- normalizePath(".")
 source("src/compliance/load.R")
 load_compliance(root)
 work <- tempfile("workbook-compliance-tests-"); dir.create(work)
+on.exit(unlink(work, recursive = TRUE), add = TRUE)
 fixtures <- file.path(work, "fixtures")
 status <- system2("python3", c(shQuote(file.path(root, "tests", "make_workbook_fixtures.py")), shQuote(fixtures)))
 stopifnot(status == 0L)
@@ -131,7 +137,7 @@ geo <- read_json(file.path(enriched$manifest$run_dir, "derived", "data__samples_
 check(length(geo$features) == 2L && all(vapply(geo$features, function(f) f$properties$source_id == "SN26_00001", logical(1))), "Enrichment lost repeated entity IDs")
 check(identical(vapply(geo$features, function(f) as.integer(f$properties$source_row), integer(1)), c(2L, 3L)), "Enrichment lost source row identity")
 for (artifact in enriched$manifest$artifacts) check(artifact$sha256 == sha_file(file.path(enriched$manifest$run_dir, artifact$path)), "Artifact digest mismatch")
-options(httr2_mock = NULL)
+options(httr2_mock = function(req) stop("Unexpected public request during offline tests"))
 # Source literals and exported Unicode must not depend on the host locale.
 registry$entity_reference[1] <- "Spécimen_1"
 write_character_csv(registry, registry_path)
@@ -152,3 +158,6 @@ for (format in c("xlsx", "ods")) {
 }
 cat("All workbook compliance regression checks passed.\n")
 unlink(work, recursive = TRUE)
+
+}
+run_compliance_tests()

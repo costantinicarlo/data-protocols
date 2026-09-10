@@ -10,7 +10,7 @@ R 4.2 or later and these packages are required:
 
 ```sh
 mkdir -p local/R-library
-Rscript -e 'install.packages(c("jsonlite", "xml2", "digest"), lib="local/R-library", repos="https://cloud.r-project.org")'
+Rscript -e 'install.packages(c("jsonlite", "xml2", "digest", "httr2"), lib="local/R-library", repos="https://cloud.r-project.org")'
 ```
 
 Run the included sample workbook from the repository root:
@@ -67,8 +67,8 @@ The first six names concretise the workbook contract's essential metadata. Their
 | --- | --- |
 | `identifier_profile` | Name defined in `identifier_profiles`; used for the key or additional identifier fields. |
 | `type` | `text`, `number`, `integer`, `boolean`, `date`, `datetime`, `time`, `duration`, or `partial_date`. |
-| `required` | Literal `true` when blank observations violate the collection requirement. |
-| `minimum`, `maximum` | Hard numeric bounds with scientific justification. |
+| `required` | Literal `true` or `false`; `true` requires an observation, not a blank or legacy missing code. |
+| `minimum`, `maximum` | Finite scalar numeric bounds; require `type = number` or `integer` and `minimum <= maximum`. |
 | `unit` | Meaningful unit; required when numeric durations need interpretation. |
 | `allowed_values` | JSON array of permitted literal values. |
 | `ref_sheet`, `ref_field` | A retained field in a `ref__` worksheet supplying allowed values. |
@@ -147,12 +147,12 @@ Derived tables contain source row/ID, original coordinate strings, full-precisio
 
 `config/compliance.example.json` lists execution defaults. Accepted options are:
 
-- `max_cells`: limit on occupied cells and logical rectangles (default one million).
+- `max_cells`: per-worksheet occupied-cell and logical-rectangle limit (default one million), not a workbook-wide budget. Both XLSX and ODS enforce occupied-cell limits during parsing, including excluded calculated sheets. Formula-only cells count; ordinary empty trailing grid does not. ODS reserves the cumulative occupied expansion of each repeated row before materialising it, with checked repetition/index arithmetic.
 - `missing_token`: CSV serialization token for genuine blanks (default `\N`). A literal collision blocks extraction; choose a different token rather than recoding a source value.
-- `required_assessments`: check names that must have assessed/applicable coverage before publishing; absent or `not_assessed` checks block publication. Examples include `identifier_profile`, `lineage`, and `assignment_uniqueness_and_retirement`.
+- `required_assessments`: an array of nonempty check-name strings (a character vector is also accepted programmatically); objects, nested values, and non-string elements are rejected. Absent or `not_assessed` checks block publication; genuinely `not_applicable` checks retain their documented treatment. Final required coverage is evaluated after eligible requested enrichment. Examples include `identifier_profile`, `lineage`, and `assignment_uniqueness_and_retirement`.
 - `references`: optional `registry`, `lineage`, and `aliases` entries. Each selects either `{"sheet":"ref__register"}` or `{"path":"register.csv"}`. Paths are relative to the configuration file. External reference files must be UTF-8 CSV; values are read as literal text. Files are retained byte-for-byte in each run and hashed for build invalidation.
 - `enrich_toponyms`: default false; explicitly opts into network geocoding.
-- `geocoding_delay`: default 15.1 seconds; recurring enrichment requires at least 15 seconds between uncached Nominatim requests.
+- `geocoding_delay`: default 15.1 seconds; recurring enrichment requires at least 15 seconds between actual Nominatim attempts, retries included.
 
 Registry columns: `namespace,identifier,entity_reference,status`. Alias columns: `provider,external_id,namespace,identifier`. Lineage columns: `namespace,child_id,parent_id,relationship`, optionally `parent_namespace`. Multiple pool parents are valid. Missing references, self-parenting, cycles, duplicate allocations, and conflicting provider mappings produce findings. The register remains authoritative; observation exports are not mistaken for an allocation ledger. When a previous validated register exists, changed entity assignments or removed historical identifiers block publication.
 
@@ -220,9 +220,9 @@ Stored OSM references are checked only when selected through `toponym_fields`, f
 {"data__localities":{"name":"name","osm_type":"osm_type","osm_id":"osm_id","status":"status"}}
 ```
 
-For new enrichment, use `--enrich-toponyms` on a full run (and install `httr2` if needed). It invokes the existing toponym engine only after validation succeeds, uses the standardised sampling coordinates, preserves original entity IDs and source row references, and writes separate GeoJSON artifacts. It does not alter reviewed source names. Ambiguous/fallback matches generate review warnings; unresolved records or service denials block publication of the requested enriched build.
+For new enrichment, use `--enrich-toponyms` on a full run (and install `httr2` if needed). It invokes the toponym engine on full runs only, after core validation succeeds and before final required-coverage evaluation, uses the standardised sampling coordinates, preserves original entity IDs and source row references, and writes separate GeoJSON artifacts. It does not alter reviewed source names. Ambiguous/fallback matches generate review warnings; unresolved records or service denials block publication of the requested enriched build.
 
-Read and comply with the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/). This workflow is recurring bulk use: the integration enforces a delay of at least 15 seconds and retains API caches across workbook downloads. Service availability is not a condition for ordinary offline validation. Confidential coordinates must not be submitted to a public service.
+Read and comply with the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/). This workflow is recurring bulk use: the integration enforces an interval of at least 15 seconds between actual Nominatim attempts, including retries and successive tables and retains API caches across workbook downloads. Service availability is not a condition for ordinary offline validation. Confidential coordinates must not be submitted to a public service.
 
 ## Supported evidence and limits
 
@@ -237,8 +237,45 @@ Colour-only meanings, pasted-formula history, actual field positioning accuracy,
 ```sh
 R_LIBS_USER="$PWD/local/R-library" Rscript tests/test_compliance.R
 R_LIBS_USER="$PWD/local/R-library" Rscript tests/test_osm_toponym.R
+R_LIBS_USER="$PWD/local/R-library" Rscript tests/run_all.R
 ```
 
 The workbook tests also require `httr2` for the optional enrichment integration check. They use Python 3's standard library to generate deterministic packages, then run the R readers and pipeline. They exercise XLSX/ODS equivalence, shared strings, formulas/errors, text/Unicode, both Excel date systems, clocks/durations, empty tables, identifier profiles, duplicate versus entity keys, coordinate ambiguity, mutation history, config invalidation, failed-publication preservation, register reassignment, and lineage cycles. Cached OSM responses exercise enrichment without public requests. Projected-CRS transformation requires separate acceptance testing with `sf` and representative source coordinates.
 
 Format references: [Microsoft's OOXML cell-value documentation](https://learn.microsoft.com/en-us/office/open-xml/spreadsheet/how-to-retrieve-the-values-of-cells-in-a-spreadsheet), the [OpenDocument specifications](https://www.oasis-open.org/standard/opendocumentv1-3/), and [RFC 7946](https://www.rfc-editor.org/rfc/rfc7946.html). Source contract rules, rather than these format specifications alone, determine what is publishable.
+
+## Selective declaration semantics in the corrected implementation
+
+Declarations are checked once per applicable field before observations, including zero-row tables and all-missing variables. Invalid supplied types, `required` values, numeric bounds, or JSON arrays are metadata errors that block full publication. No type is inferred to rescue a supplied bound, and no exhaustive field schema is introduced.
+
+`allowed_values` and `missing_codes` accept JSON arrays whose elements are all strings, all finite numbers, or all booleans. Objects, nested arrays/objects, null elements, and mixed element types are errors. Elements compare to stored serialized literals after R scalar character conversion: booleans are `TRUE`/`FALSE`, numeric declarations use their R character representation (for exact reported spelling, use strings), and strings retain case, Unicode and whitespace. No observation is coerced or rewritten to match a vocabulary. Blank/absent `allowed_values` means no inline constraint; `[]` means an empty vocabulary, allowing only genuine blanks and documented missing-code exceptions subject to required/key rules. When an inline and reference vocabulary are both supplied, the observation must satisfy both; a reference list cannot negate an explicitly empty inline vocabulary. Blank/absent `missing_codes` and `[]` both mean no exceptions.
+
+Legacy missing-code recognition is shared by generic and temporal checks and remains field-specific. Declared codes in date, datetime, time, duration, and partial-date fields are retained verbatim and reported once, without a second temporal-syntax failure. A code never satisfies `required = true` or a key/identifier identity. Genuine blanks remain blanks, and real temporal values still require valid syntax, calendar dates, and applicable timezone evidence. Metadata timezone errors are not waived by a code. Undeclared codes receive normal validation. Corrected enforcement may fail previously accepted workbooks; resolve metadata or source observations upstream rather than silently recoding them.
+
+Four-digit `field_collection` year profiles compare the encoded year directly with an ordered full range, for example `[1850, 2026]`. Only two-digit profiles require at most 100 years with unique suffixes. `year_digits` (2 or 4), `serial_width` (1..30), and the two `year_range` bounds (0..9999) must be finite integer declarations of the correct shape, even for empty tables. Country membership, nonzero serials, child suffixes, and text-storage rules remain in force.
+
+## Enrichment coverage and execution scope
+
+This synthetic configuration can publish when all core checks pass and eligible lookups succeed:
+
+```json
+{"enrich_toponyms": true, "required_assessments": ["live_toponym_enrichment"]}
+```
+
+Disabled enrichment has no successful coverage. Requested enrichment with no eligible coordinates is `not_assessed`, so requiring it fails. It is not disguised as `not_applicable`. Partial stages perform no live enrichment and never publish. Core validation errors prevent network activity; failed/incomplete responses or unresolved records block enriched publication and preserve the previous `current.json`, snapshot and diagnostics. Warnings for genuine successful fallbacks or ambiguous results still require review.
+
+Use one workflow process for public-service enrichment. The in-process limiter shares timing across records/tables, including retries, and honours the longest service interval, backoff and valid `Retry-After`. It does not coordinate other processes. Tests can inject monotonic clock/sleeper functions with `osm_toponym.clock` and `osm_toponym.sleep` options (and `osm_toponym.wall_clock` for HTTP-date tests); normal execution uses process elapsed time and real sleep. These are test/programmatic hooks, not permission to bypass public-service policy. See [cache/error and service behaviour](../README.md#caching-and-service-use).
+
+## Representative Synology export acceptance
+
+Status: **not executed; authorised representative source evidence is unavailable**. Synthetic parser tests are not exporter acceptance. For each deployed exporter/version and both intended formats:
+
+1. Retain an authorised completed download unchanged, record SHA-256, exporter/version, source revision and access-controlled evidence location outside Git.
+2. Record a small expected-value manifest from authoritative source inspection: exact IDs (zeros, long strings, Unicode, repeated entity keys), quoted text/line breaks, literal missing-like strings, genuine blanks, named all-missing variables and legitimate empty tables.
+3. Include native dates, datetimes, clocks, durations, partial dates and timezone declarations, plus raw/calculated fields and calculated sheets. Record source stored types, headers, dimensions and key scope; confirm exact case-sensitive `calc__` separation.
+4. Run `Rscript src/run_compliance.R INPUT.xlsx STATE --source-id WORKBOOK_ID --config CONFIG.json` (then the corresponding ODS download). Compare expected literals, types and dimensions with retained `cell_evidence/`, `inventory.json` and `original/` CSVs read using the manifest's missing token. Compare derived coordinates separately from source and OSM anchors.
+5. Recalculate snapshot and artifact digests; verify repeated keys/row order and all-missing variables survive. Check calendar values and duration totals against source evidence, not appearance alone.
+6. In a separate authorised test state, verify a known invalid source export retains its snapshot and diagnostics and leaves the last validated pointer unchanged. Record discrepancies for correction upstream; do not edit downloaded workbooks or generated CSVs.
+7. Record pass/fail per expected value, format and exporter version, reviewer/date and outstanding differences. Keep private workbooks, coordinates, credentials and server URLs out of test fixtures and Git. Repeat after a material exporter/reader change.
+
+See [release readiness](Release%20Readiness.md) for exact tested implementation evidence and remaining decisions.

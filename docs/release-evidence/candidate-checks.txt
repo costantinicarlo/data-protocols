@@ -1,0 +1,143 @@
+All workbook compliance regression checks passed.
+All offline regression checks passed.
+PASS F01 valid limits xlsx
+PASS F01 bounds_no_type_rows xlsx
+PASS F01 bounds_no_type_empty xlsx
+PASS F01 bounds_no_type_missing xlsx
+PASS F01 bounds_text_rows xlsx
+PASS F01 bounds_text_empty xlsx
+PASS F01 bounds_text_missing xlsx
+PASS F01 bounds_inf_rows xlsx
+PASS F01 bounds_inf_empty xlsx
+PASS F01 bounds_inf_missing xlsx
+PASS F01 bounds_reverse_rows xlsx
+PASS F01 bounds_reverse_empty xlsx
+PASS F01 bounds_reverse_missing xlsx
+PASS F01 bounds_vector_rows xlsx
+PASS F01 bounds_vector_empty xlsx
+PASS F01 bounds_vector_missing xlsx
+PASS F01 bad_type_rows xlsx
+PASS F01 bad_type_empty xlsx
+PASS F01 bad_type_missing xlsx
+PASS F01 bad_required_rows xlsx
+PASS F01 bad_required_empty xlsx
+PASS F01 bad_required_missing xlsx
+PASS F01 vocab_object_rows xlsx
+PASS F01 vocab_object_empty xlsx
+PASS F01 vocab_object_missing xlsx
+PASS F01 vocab_nested_rows xlsx
+PASS F01 vocab_nested_empty xlsx
+PASS F01 vocab_nested_missing xlsx
+PASS F01 vocab_null_rows xlsx
+PASS F01 vocab_null_empty xlsx
+PASS F01 vocab_null_missing xlsx
+PASS F01 vocab_mixed_rows xlsx
+PASS F01 vocab_mixed_empty xlsx
+PASS F01 vocab_mixed_missing xlsx
+PASS F01 missing_object_rows xlsx
+PASS F01 missing_object_empty xlsx
+PASS F01 missing_object_missing xlsx
+PASS F01 empty vocabulary xlsx
+PASS F04 date xlsx
+PASS F04 datetime xlsx
+PASS F04 time xlsx
+PASS F04 duration xlsx
+PASS F04 partial_date xlsx
+PASS F04 key exceptions xlsx
+PASS F07 long full-year range xlsx
+PASS F07 year_outside xlsx
+PASS F07 year_ambiguous xlsx
+PASS F07 year_bad_range xlsx
+PASS F07 year_object xlsx
+PASS F07 year_huge xlsx
+PASS F07 year_bad_width xlsx
+PASS F07 year_bad_digits xlsx
+PASS F07 year_empty_digits xlsx
+PASS F07 year_null_width xlsx
+PASS F01 valid limits ods
+PASS F01 bounds_no_type_rows ods
+PASS F01 bounds_no_type_empty ods
+PASS F01 bounds_no_type_missing ods
+PASS F01 bounds_text_rows ods
+PASS F01 bounds_text_empty ods
+PASS F01 bounds_text_missing ods
+PASS F01 bounds_inf_rows ods
+PASS F01 bounds_inf_empty ods
+PASS F01 bounds_inf_missing ods
+PASS F01 bounds_reverse_rows ods
+PASS F01 bounds_reverse_empty ods
+PASS F01 bounds_reverse_missing ods
+PASS F01 bounds_vector_rows ods
+PASS F01 bounds_vector_empty ods
+PASS F01 bounds_vector_missing ods
+PASS F01 bad_type_rows ods
+PASS F01 bad_type_empty ods
+PASS F01 bad_type_missing ods
+PASS F01 bad_required_rows ods
+PASS F01 bad_required_empty ods
+PASS F01 bad_required_missing ods
+PASS F01 vocab_object_rows ods
+PASS F01 vocab_object_empty ods
+PASS F01 vocab_object_missing ods
+PASS F01 vocab_nested_rows ods
+PASS F01 vocab_nested_empty ods
+PASS F01 vocab_nested_missing ods
+PASS F01 vocab_null_rows ods
+PASS F01 vocab_null_empty ods
+PASS F01 vocab_null_missing ods
+PASS F01 vocab_mixed_rows ods
+PASS F01 vocab_mixed_empty ods
+PASS F01 vocab_mixed_missing ods
+PASS F01 missing_object_rows ods
+PASS F01 missing_object_empty ods
+PASS F01 missing_object_missing ods
+PASS F01 empty vocabulary ods
+PASS F04 date ods
+PASS F04 datetime ods
+PASS F04 time ods
+PASS F04 duration ods
+PASS F04 partial_date ods
+PASS F04 key exceptions ods
+PASS F07 long full-year range ods
+PASS F07 year_outside ods
+PASS F07 year_ambiguous ods
+PASS F07 year_bad_range ods
+PASS F07 year_object ods
+PASS F07 year_huge ods
+PASS F07 year_bad_width ods
+PASS F07 year_bad_digits ods
+PASS F07 year_empty_digits ods
+PASS F07 year_null_width ods
+PASS F06 ods_two_cells
+PASS F06 ods_groups
+PASS F06 ods_formula
+PASS F06 ods_excluded
+PASS F06 ods_overflow
+PASS F06 ods_fraction
+PASS F06 ods_zero
+PASS F06 exact and blank
+PASS F01 scalar representations and single metadata diagnostics
+PASS F04 invalid real temporal values still block publication
+PASS F06 expansion is rejected before occupied cells materialise
+PASS F02 rejected envelope {"remark":"runtime error: timeout","elements":[]}
+PASS F02 rejected envelope {"remark":"runtime error: memory","elements":[{"type":"node","id":123,"lat":13.5,"lon":-16.2,"tags":{"name":"Synthetic village","place":"village"}}]}
+PASS F02 rejected envelope {}
+PASS F02 rejected envelope {"elements":{}}
+PASS F02 rejected envelope {"elements":null}
+PASS F02 rejected envelope {"elements":[{}]}
+PASS F02 rejected envelope {"elements":[],"remark":"unknown notice"}
+PASS F02 rejected envelope {"elements":[],"remark":" "}
+PASS F02 old error cache and valid empty
+PASS F02 valid candidates and fallback
+PASS F03 actual CSV path preserves identifiers
+PASS F03 prevalidation preserves output and makes zero requests
+PASS F08 global JSON helper collision
+PASS F09 every actual retry respects service interval
+PASS F09 bounded attempts, budget, denial and cache
+PASS F09 HTTP dates, remaining budget and cross-record cooldown
+PASS F02 CLI and enriched publication reject incomplete Overpass
+PASS F05 required eligible enrichment
+PASS F05 disabled, empty, unknown, core error and stages
+All release-hardening checks passed.
+Fresh-process CLI/programmatic cache, coverage, rate, and publication checks passed.
+All mandatory offline suites passed. Optional sf/exporter acceptance is separate.

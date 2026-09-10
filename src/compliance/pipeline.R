@@ -97,10 +97,12 @@ run_toponym_enrichment <- function(ctx) {
   eval(parse(file.path(COMPLIANCE_ROOT, "src", "osm_toponym.R"), encoding = "UTF-8", keep.source = FALSE), envir = engine)
   # Persist response caches across successful and failed downloads of this workbook.
   engine$NOMINATIM_DELAY <- ctx$config$geocoding_delay %||% 15.1
-  if (!is.finite(engine$NOMINATIM_DELAY) || engine$NOMINATIM_DELAY < 15) stop("Recurring enrichment must use geocoding_delay >= 15 seconds")
+  if (!is.numeric(engine$NOMINATIM_DELAY) || length(engine$NOMINATIM_DELAY) != 1L || !is.finite(engine$NOMINATIM_DELAY) || engine$NOMINATIM_DELAY < 15) stop("Recurring enrichment must use geocoding_delay >= 15 seconds")
+  assessed <- FALSE
   for (name in names(ctx$derived)) {
     data <- ctx$derived[[name]]; data <- data[data$status == "converted", , drop = FALSE]
     if (!nrow(data)) next
+    assessed <- TRUE
     # Use temporary row IDs so repeated entity keys do not collapse observations.
     query <- data.frame(id = paste0("ROW_", data$source_row), latitude = data$latitude_dd, longitude = data$longitude_dd)
     geo <- engine$resolve_toponyms(query)
@@ -113,7 +115,7 @@ run_toponym_enrichment <- function(ctx) {
     if (any(statuses == "unresolved")) finding(ctx, "toponymy.enrichment_failure", "error", "Requested enrichment contains unresolved records", name)
     if (any(statuses %in% c("ambiguous", "osm_fallback"))) finding(ctx, "toponymy.enrichment_review", "warning", "Enrichment includes ambiguous/fallback references requiring review", name)
   }
-  coverage(ctx, "live_toponym_enrichment", "assessed", "Automated OSM lookup is not human verification")
+  coverage(ctx, "live_toponym_enrichment", if (assessed) "assessed" else "not_assessed", if (assessed) "Automated OSM lookup is not human verification" else "No eligible coordinates; no lookup was assessed")
 }
 build_compliance_report <- function(ctx, manifest) {
   write_json(ctx$findings, file.path(ctx$run_dir, "findings.json"))
@@ -144,6 +146,9 @@ run_compliance <- function(input, state, source_id, config = list(), config_dir 
   if (!is.null(config$max_cells) && (length(config$max_cells) != 1L || !is.numeric(config$max_cells) || !is.finite(config$max_cells) || config$max_cells < 1 || config$max_cells != trunc(config$max_cells))) stop("max_cells must be a positive integer")
   if (!is.null(config$missing_token) && (!is.character(config$missing_token) || length(config$missing_token) != 1L || !nzchar(config$missing_token) || grepl("[\r\n]", config$missing_token))) stop("missing_token must be one nonempty string without newlines")
   if (!is.null(config$enrich_toponyms) && (!is.logical(config$enrich_toponyms) || length(config$enrich_toponyms) != 1L || is.na(config$enrich_toponyms))) stop("enrich_toponyms must be a JSON boolean")
+  required <- config$required_assessments
+  if (!is.null(required) && ((!is.list(required) && !is.character(required)) || !is.null(names(required)) ||
+      !all(vapply(required, function(x) is.character(x) && length(x) == 1L && !is.na(x) && nzchar(trimws(x)), logical(1))))) stop("required_assessments must be an array of nonempty check names")
   dir.create(file.path(state, source_id), recursive = TRUE, showWarnings = FALSE)
   state <- normalizePath(state); source_dir <- file.path(state, source_id)
   lock <- file.path(source_dir, ".lock")
@@ -178,11 +183,12 @@ run_compliance <- function(input, state, source_id, config = list(), config_dir 
         if (stage %in% c("all", "extract", "lineage", "report")) validate_lineage(ctx)
         if (stage %in% c("all", "extract", "toponymy", "report")) validate_toponymy(ctx)
         if (stage %in% c("all", "extract", "report")) {
+          if (stage == "all") run_toponym_enrichment(ctx)
+          else if (isTRUE(config$enrich_toponyms)) coverage(ctx, "live_toponym_enrichment", "not_assessed", "Partial stages do not perform live enrichment")
           for (required in unlist(config$required_assessments %||% list())) {
             found <- Filter(function(x) x$check == required, ctx$coverage)
             if (!length(found) || any(vapply(found, function(x) x$state == "not_assessed", logical(1)))) finding(ctx, "publication.required_coverage", "error", paste("Required assessment incomplete:", required))
           }
-          run_toponym_enrichment(ctx)
           if (!has_errors(ctx)) export_tables(ctx)
         }
         standardize_coordinates(ctx)

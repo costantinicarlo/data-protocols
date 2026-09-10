@@ -1,0 +1,41 @@
+name: Offline regression suites
+on:
+  pull_request:
+  push:
+    branches: [main, 'fix/**']
+permissions:
+  contents: read
+jobs:
+  regression:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            r: '4.2.3'
+          - os: ubuntu-24.04
+            r: release
+          - os: macos-14
+            r: release
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6, verified 2026-09-08
+        with:
+          persist-credentials: false
+      - uses: r-lib/actions/setup-r@465b7d8e732ca3921382b1674c59bada9cbf3399 # v2, verified 2026-09-08
+        with:
+          r-version: ${{ matrix.r }}
+          use-public-rspm: true
+      - name: Install explicit test dependencies
+        shell: Rscript {0}
+        run: |
+          install.packages(c("jsonlite", "xml2", "digest", "httr2"))
+          for (p in c("jsonlite", "xml2", "digest", "httr2")) stopifnot(requireNamespace(p, quietly = TRUE))
+          sessionInfo()
+      - name: Run all mandatory offline suites (including C-locale subprocesses)
+        run: Rscript tests/run_all.R
+      - name: Whitespace and Python syntax
+        run: |
+          git diff --check
+          python3 -m py_compile tests/make_workbook_fixtures.py tests/make_hardening_fixtures.py
+# sf/projected-CRS exporter acceptance is separate; this matrix does not claim it.

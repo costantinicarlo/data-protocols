@@ -1,0 +1,130 @@
+All offline regression checks passed.
+All workbook compliance regression checks passed.
+PASS F01 valid limits xlsx
+FAIL F01 bounds_no_type_rows xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 bounds_no_type_empty xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 bounds_no_type_missing xlsx : out$exit_status == 2L is not TRUE
+PASS F01 bounds_text_rows xlsx
+FAIL F01 bounds_text_empty xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 bounds_text_missing xlsx : out$exit_status == 2L is not TRUE
+PASS F01 bounds_inf_rows xlsx
+FAIL F01 bounds_inf_empty xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 bounds_inf_missing xlsx : out$exit_status == 2L is not TRUE
+PASS F01 bounds_reverse_rows xlsx
+FAIL F01 bounds_reverse_empty xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 bounds_reverse_missing xlsx : out$exit_status == 2L is not TRUE
+PASS F01 bounds_vector_rows xlsx
+FAIL F01 bounds_vector_empty xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 bounds_vector_missing xlsx : out$exit_status == 2L is not TRUE
+PASS F01 bad_type_rows xlsx
+PASS F01 bad_type_empty xlsx
+PASS F01 bad_type_missing xlsx
+FAIL F01 bad_required_rows xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 bad_required_empty xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 bad_required_missing xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_object_rows xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_object_empty xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_object_missing xlsx : out$exit_status == 2L is not TRUE
+PASS F01 vocab_nested_rows xlsx
+FAIL F01 vocab_nested_empty xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_nested_missing xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_null_rows xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_null_empty xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_null_missing xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_mixed_rows xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_mixed_empty xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_mixed_missing xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 missing_object_rows xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 missing_object_empty xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 missing_object_missing xlsx : out$exit_status == 2L is not TRUE
+FAIL F01 empty vocabulary xlsx : out$exit_status == 2L is not TRUE
+FAIL F04 date xlsx : out$exit_status == 0L is not TRUE
+FAIL F04 datetime xlsx : out$exit_status == 0L is not TRUE
+FAIL F04 time xlsx : out$exit_status == 0L is not TRUE
+FAIL F04 duration xlsx : out$exit_status == 0L is not TRUE
+FAIL F04 partial_date xlsx : out$exit_status == 0L is not TRUE
+FAIL F04 key exceptions xlsx : out$exit_status == 2L is not TRUE
+FAIL F07 long full-year range xlsx : run("year_four", ext)$exit_status == 0L is not TRUE
+PASS F07 year_outside xlsx
+FAIL F07 year_ambiguous xlsx : out$exit_status == 2L is not TRUE
+FAIL F07 year_bad_range xlsx : out$exit_status == 2L is not TRUE
+FAIL F07 year_object xlsx : out$exit_status == 2L is not TRUE
+FAIL F07 year_huge xlsx : out$exit_status == 2L is not TRUE
+FAIL F07 year_bad_width xlsx : out$exit_status == 2L is not TRUE
+FAIL F07 year_bad_digits xlsx : out$exit_status == 2L is not TRUE
+PASS F01 valid limits ods
+FAIL F01 bounds_no_type_rows ods : out$exit_status == 2L is not TRUE
+FAIL F01 bounds_no_type_empty ods : out$exit_status == 2L is not TRUE
+FAIL F01 bounds_no_type_missing ods : out$exit_status == 2L is not TRUE
+PASS F01 bounds_text_rows ods
+FAIL F01 bounds_text_empty ods : out$exit_status == 2L is not TRUE
+FAIL F01 bounds_text_missing ods : out$exit_status == 2L is not TRUE
+PASS F01 bounds_inf_rows ods
+FAIL F01 bounds_inf_empty ods : out$exit_status == 2L is not TRUE
+FAIL F01 bounds_inf_missing ods : out$exit_status == 2L is not TRUE
+PASS F01 bounds_reverse_rows ods
+FAIL F01 bounds_reverse_empty ods : out$exit_status == 2L is not TRUE
+FAIL F01 bounds_reverse_missing ods : out$exit_status == 2L is not TRUE
+PASS F01 bounds_vector_rows ods
+FAIL F01 bounds_vector_empty ods : out$exit_status == 2L is not TRUE
+FAIL F01 bounds_vector_missing ods : out$exit_status == 2L is not TRUE
+PASS F01 bad_type_rows ods
+PASS F01 bad_type_empty ods
+PASS F01 bad_type_missing ods
+FAIL F01 bad_required_rows ods : out$exit_status == 2L is not TRUE
+FAIL F01 bad_required_empty ods : out$exit_status == 2L is not TRUE
+FAIL F01 bad_required_missing ods : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_object_rows ods : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_object_empty ods : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_object_missing ods : out$exit_status == 2L is not TRUE
+PASS F01 vocab_nested_rows ods
+FAIL F01 vocab_nested_empty ods : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_nested_missing ods : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_null_rows ods : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_null_empty ods : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_null_missing ods : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_mixed_rows ods : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_mixed_empty ods : out$exit_status == 2L is not TRUE
+FAIL F01 vocab_mixed_missing ods : out$exit_status == 2L is not TRUE
+FAIL F01 missing_object_rows ods : out$exit_status == 2L is not TRUE
+FAIL F01 missing_object_empty ods : out$exit_status == 2L is not TRUE
+FAIL F01 missing_object_missing ods : out$exit_status == 2L is not TRUE
+FAIL F01 empty vocabulary ods : out$exit_status == 2L is not TRUE
+FAIL F04 date ods : out$exit_status == 0L is not TRUE
+FAIL F04 datetime ods : out$exit_status == 0L is not TRUE
+FAIL F04 time ods : out$exit_status == 0L is not TRUE
+FAIL F04 duration ods : out$exit_status == 0L is not TRUE
+FAIL F04 partial_date ods : out$exit_status == 0L is not TRUE
+FAIL F04 key exceptions ods : out$exit_status == 2L is not TRUE
+FAIL F07 long full-year range ods : run("year_four", ext)$exit_status == 0L is not TRUE
+PASS F07 year_outside ods
+FAIL F07 year_ambiguous ods : out$exit_status == 2L is not TRUE
+FAIL F07 year_bad_range ods : out$exit_status == 2L is not TRUE
+FAIL F07 year_object ods : out$exit_status == 2L is not TRUE
+FAIL F07 year_huge ods : out$exit_status == 2L is not TRUE
+FAIL F07 year_bad_width ods : out$exit_status == 2L is not TRUE
+FAIL F07 year_bad_digits ods : out$exit_status == 2L is not TRUE
+FAIL F06 ods_two_cells : inherits(tryCatch(inspect_dataset(file.path(fixtures, paste0(name,  .... is not TRUE
+FAIL F06 ods_groups : inherits(tryCatch(inspect_dataset(file.path(fixtures, paste0(name,  .... is not TRUE
+FAIL F06 ods_formula : inherits(tryCatch(inspect_dataset(file.path(fixtures, paste0(name,  .... is not TRUE
+FAIL F06 ods_excluded : inherits(tryCatch(inspect_dataset(file.path(fixtures, paste0(name,  .... is not TRUE
+PASS F06 ods_overflow
+FAIL F06 ods_fraction : inherits(tryCatch(inspect_dataset(file.path(fixtures, paste0(name,  .... is not TRUE
+PASS F06 ods_zero
+PASS F06 exact and blank
+FAIL F02 rejected envelope {"remark":"runtime error: timeout","elements":[]} : out$features[[1]]$properties$status == "unresolved" is not TRUE
+FAIL F02 rejected envelope {"remark":"runtime error: memory","elements":[{"type":"node","id":123,"lat":13.5,"lon":-16.2,"tags":{"name":"Synthetic village","place":"village"}}]} : out$features[[1]]$properties$status == "unresolved" is not TRUE
+FAIL F02 rejected envelope {} : out$features[[1]]$properties$status == "unresolved" is not TRUE
+FAIL F02 rejected envelope {"elements":{}} : out$features[[1]]$properties$status == "unresolved" is not TRUE
+FAIL F02 rejected envelope {"elements":null} : out$features[[1]]$properties$status == "unresolved" is not TRUE
+FAIL F02 rejected envelope {"elements":[{}]} : out$features[[1]]$properties$status == "unresolved" is not TRUE
+FAIL F02 rejected envelope {"elements":[],"remark":"unknown notice"} : out$features[[1]]$properties$status == "unresolved" is not TRUE
+FAIL F02 old error cache and valid empty : calls == 1L is not TRUE
+PASS F02 valid candidates and fallback
+FAIL F03 actual CSV path preserves identifiers : values must be length 1,
+FAIL F03 prevalidation preserves output and makes zero requests : inherits(err, "error") is not TRUE
+FAIL F08 global JSON helper collision : unused arguments (pretty = TRUE, auto_unbox = TRUE, na = "null", digits = NA)
+FAIL F09 every actual retry respects service interval : Nominatim: transport failure
+FAIL F09 bounded attempts, budget, denial and cache : length(times) == if (status %in% c(401L, 403L)) 1L else 4L is not TRUE
+FAIL F05 required eligible enrichment : out$exit_status == 0L is not TRUE
+FAIL F05 disabled, empty, unknown, core error and stages : inherits(err, "error") is not TRUE

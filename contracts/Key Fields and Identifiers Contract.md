@@ -215,3 +215,7 @@ The workspace's existing `SN15_S01G01` and `SN20_S01G01` inputs are examples of 
 For an intentional migration, retain original snapshots, define the new assignment scope, audit collisions and lineage, maintain a lossless old/new/context mapping, reconcile physical and external references, and record the effective date. Do not activate a new ID in analysis while labels or provider records still point ambiguously to the old one.
 
 The exact identifier layout, uppercase convention, widths, serial rules, and child suffixes are project design choices. External sources cited above support country-code terminology and storage risks; they do not make this project scheme a global identifier standard. Once this draft is adopted and committed, pin its full Git commit in consuming manifests. A draft label alone does not identify the exact contract text.
+
+## Implementation correction notes (compliance 0.1.0 candidate)
+
+Four-digit years permit ordered collection ranges longer than a century (for example `[1850, 2026]`); the unique-century restriction applies only to two-digit years. Supplied year/serial declarations are validated before observations, including empty tables. See the [machine profile](../docs/Dataset%20Compliance.md#selective-declaration-semantics-in-the-corrected-implementation) for representation limits. Historical missing-code declarations cannot validate a missing identity. This corrects enforcement of this draft and does not allocate, reinterpret, or rewrite identifiers.

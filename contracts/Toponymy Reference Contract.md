@@ -2,9 +2,9 @@
 
 **Document revised:** 2026-09-07
 
-**Implementation reference:** [osm_toponym.R](../src/osm_toponym.R), generator version `1.1.1`, source commit `c420c2f5c803a526ddb40d2b824e3fb122026811`.
+**Implementation reference:** [osm_toponym.R](../src/osm_toponym.R), generator version `1.1.2`; see the separately recorded [immutable component pins](../README.md#pinning-source-code-and-contracts).
 
-**Versioning:** This contract has no declared semantic version. Pin its own Git revision separately from the utility's revision; the source commit above does not identify this contract revision.
+**Versioning:** This contract has no declared semantic version. Pin its own Git revision separately from the utility's revision; a utility source commit does not identify this contract revision.
 
 ## Purpose
 
@@ -239,7 +239,7 @@ Coordinates MUST NOT be publicly disclosed where legitimate scientific, conserva
 
 ### 11.2 Current automated resolution procedure
 
-The following describes the implemented engine in version `1.1.1`. Search parameters are implementation defaults, not universal geographical definitions or guarantees of a correct match.
+The following describes the implemented engine in version `1.1.2`. Search parameters are implementation defaults, not universal geographical definitions or guarantees of a correct match.
 
 1. Reverse-geocode the supplied coordinates with Nominatim at zoom 15, requesting address and name details.
 2. If the returned object has `osm_type = node` and `category = place`, retain it directly. This branch does not perform an Overpass search, check the 5 km search radius, or restrict the place subtype to the Overpass list below. It can therefore retain neighbourhood nodes as well as settlements.
@@ -298,3 +298,7 @@ Under this contract, OpenStreetMap provides the default answer.
 Local usage, national authorities, historical documents and other sources remain essential evidence about geographical names. They complement the common reference rather than being discarded by it.
 
 **The objective is not to impose a universal name on a place. It is to make every geographical reference in the scientific record independently resolvable.**
+
+### Implementation correction notes (generator 1.1.2)
+
+A completed Overpass search requires a valid response envelope and candidate array. Nonempty remarks, including unknown remarks, invalidate a fresh or cached search; partial candidates cannot prove uniqueness. Failed old caches are retained separately with failure markers. Only genuine successful empty searches may support fallback. Standalone input identifiers are read as exact UTF-8 strings, including missing-token-like literals, with full input validation before requests. The explicit request loop spaces actual attempts, retries included, within bounded time/attempt limits and server guidance. See the [implementation guide](../README.md#release-candidate-hardening) for supported scope. The legacy `verified` field retains its run-date meaning and does not imply human review.
