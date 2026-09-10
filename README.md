@@ -1,3 +1,5 @@
+<img src="assets/branding/data-protocols-hex.png" alt="Data Protocols hex logo" width="200">
+
 # Data Standard Operating Protocols
 
 Shared conventions for reproducible scientific data curation and geographical references, with an R utility for resolving coordinates against OpenStreetMap (OSM).
