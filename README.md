@@ -4,6 +4,8 @@
 
 Shared conventions for reproducible scientific data curation and geographical references, with an R utility for resolving coordinates against OpenStreetMap (OSM).
 
+See the [changelog](CHANGELOG.md) for the pending 0.1.0 release and future release notes.
+
 ## Current status
 
 The toponym utility reports generator version `1.1.2` and combines Nominatim reverse geocoding with Overpass place-node matching and disk caching. The workbook contract is `2.0.0-draft.1` (2026-09-07), proposed for review and adoption. The new workbook compliance suite (`0.1.0`) preserves XLSX/ODS downloads, validates their datasheets, derives decimal-degree coordinates, compares successive snapshots, and publishes coherent validated builds. The toponymy contract has no declared semantic version.
