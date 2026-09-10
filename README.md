@@ -201,10 +201,20 @@ Keep source, contracts, and curated examples under version control. The `.gitign
 
 ## Release candidate hardening
 
-Repository/compliance `0.1.0` remains an unreleased candidate; generator `1.1.2` is a separate utility version. Contract draft versions are unchanged because these fixes enforce their existing invariants. See the [release-readiness report](docs/Release%20Readiness.md) for executed evidence, local commit pins, unresolved licensing, remote-CI status, and exporter acceptance gaps. No release is authorised by a successful local test.
+Repository/compliance `0.1.0` remains an unreleased candidate; generator `1.1.2` is a separate utility version. Contract draft versions are unchanged because these fixes enforce their existing invariants. See the [release-readiness report](docs/Release%20Readiness.md) for historical execution evidence, immutable component pins, subsequent licensing decisions, and exporter acceptance requirements. No release is authorised by a successful local test.
 
 Overpass HTTP 200 is insufficient evidence of success. Both fresh and cached responses need an object containing a valid `elements` array of well-formed candidate nodes. `elements: []` is a completed empty search; an absent/null/object-valued array is a failure. Every nonempty `remark` is conservatively rejected, including unrecognised remarks; no informational form is currently allowlisted. Partial candidates accompanied by a remark cannot establish uniqueness or a successful fallback. Such failures produce `unresolved` (standalone status `2`) and block requested enriched publication. Failed fresh responses never enter the success cache. Bounded diagnostic markers are saved under `.osm_toponym_cache/failures/`; old invalid cached bytes are moved there unchanged with a failure marker before a bounded retry. Successful cache/state layouts remain compatible.
 
 Install all mandatory test dependencies (`jsonlite`, `xml2`, `digest`, `httr2`) and Python 3.10 or later, then run `Rscript tests/run_all.R`. It runs both existing suites plus declaration/parser/network regressions and fresh-process CLI/programmatic checks. All HTTP is mocked; unexpected requests fail. CI covers minimum R 4.2.3 and current release R on Linux, plus current release R on macOS, using read-only permissions and immutable Actions pins. Authoring that workflow is not evidence that remote CI passed. Optional `sf`/projected-CRS acceptance is separate.
 
-No project source licence selection is evidenced in the tracked repository. Its status is `maintainer_decision_required`; this patch selects no licence or ownership assertion. Existing third-party notices remain intact. OSM data attribution/licensing does not license this project's source code.
+## Licence
+
+Unless otherwise indicated, the original source code, scientific protocol documents, accompanying documentation, configuration, and original synthetic examples and test fixtures in this repository are licensed under the [MIT License](LICENSE). The same licence applies to reusable code examples in the documentation; there is no separate documentation licence.
+
+Third-party material retains its existing terms and notices. This licence does not change the rights applicable to user-supplied datasets or replace the terms applicable to OpenStreetMap-derived material. See [Third-party notices](THIRD_PARTY_NOTICES.md) for scope and exceptions.
+
+## Citation and methodological use
+
+When a study's data handling adopts these contracts, cite the repository release or full commit actually used, identify the applicable contracts, and document study-specific departures. The [CITATION.cff](CITATION.cff) file supplies bibliographic metadata; [Citation and reuse](docs/Citation%20and%20reuse.md) provides manuscript wording and release-specific guidance.
+
+Following a contract and running the supplied validator are distinct activities. A successful validator run does not certify conditions outside the available evidence. Scholarly citation is requested for methodological traceability, not imposed as an additional MIT licence condition. OSM attribution and other applicable third-party requirements remain separate.

@@ -1,0 +1,37 @@
+# Repository-wide metadata: the citation covers both contracts and utilities.
+# Version 0.1.0 is the forthcoming repository release, not the 1.1.2 generator.
+# Preparing this file does not attest that the release has been published.
+# Before tagging, add date-released with the actual release date (YYYY-MM-DD).
+# Add a version-specific DOI only when one has actually been assigned.
+# Do not add a guessed ORCID or a self-referential commit hash.
+cff-version: "1.2.0"
+message: >-
+  When a study adopts these data-handling contracts or uses the accompanying
+  utilities, please cite the repository release or full commit actually used.
+  Identify the applicable contracts and document study-specific departures.
+  Scholarly citation is requested for methodological traceability; it is not
+  an additional condition of the MIT License. See docs/Citation and reuse.md.
+type: software
+title: "data-protocols: Data standard operating protocols"
+authors:
+  - family-names: "Costantini"
+    given-names: "Carlo"
+version: "0.1.0"
+license: MIT
+repository-code: "https://github.com/costantinicarlo/data-protocols"
+url: "https://github.com/costantinicarlo/data-protocols"
+abstract: >-
+  Scientific data-handling contracts and R utilities for reproducible data
+  curation. The repository defines conventions for source-of-truth workbooks,
+  key fields and identifiers, geographical coordinates, and toponym references.
+  Accompanying tools retain source snapshots, assess observable compliance,
+  extract original tables, produce derived coordinates, and resolve locality
+  references using OpenStreetMap. Adopting a contract and executing a validator
+  are distinct methodological activities.
+keywords:
+  - scientific data management
+  - reproducibility
+  - data provenance
+  - data-handling protocols
+  - workbook validation
+  - geographical references

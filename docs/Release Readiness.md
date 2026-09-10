@@ -1,5 +1,13 @@
 # v0.1.0 release-readiness report
 
+## Licensing decision — 2026-09-09
+
+The maintainer has selected a single MIT licence for the repository's original source code, scientific protocol documents, accompanying documentation, and original synthetic examples and test fixtures. The root [LICENSE](../LICENSE) implements that decision; [Third-party notices](../THIRD_PARTY_NOTICES.md) identifies the scope and exceptions. There is no separate Creative Commons documentation licence. Scholarly citation is requested for methodological traceability and is not an additional licence condition; see [Citation and reuse](Citation%20and%20reuse.md).
+
+This update supersedes the earlier `maintainer_decision_required` statements concerning licence selection. It does not change the recorded test evidence, certify representative exporter acceptance, or itself authorise a merge, tag, or release. The assessment below is retained as historical evidence from before branch publication, not as a live statement of GitHub CI status.
+
+## Historical assessment before branch publication
+
 **Recommendation: do not release yet.** The committed technical candidate passes all four mandatory offline suites, including 138 hardening groups, with container networking disabled. Source-code licensing needs a maintainer decision, representative Synology exporter acceptance is unavailable, and remote CI has not run. No push, merge, tag, release, permission change or branch-protection change was performed.
 
 ## Baseline and scope
